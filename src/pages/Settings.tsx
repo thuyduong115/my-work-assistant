@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Bot, Check, Cloud, Copy, Database, Download, ExternalLink, Keyboard, Loader2, LogOut, Monitor, Moon, Palette, RefreshCw, Smartphone, Sun, Timer, Upload, Clock, Trash2 } from 'lucide-react'
+import { Bot, CalendarDays, Check, Cloud, Copy, Database, Download, ExternalLink, Keyboard, Loader2, LogOut, Monitor, Moon, Palette, RefreshCw, Smartphone, Sun, Timer, Upload, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { db } from '@/db/db'
 import { TABLES } from '@/db/types'
@@ -8,6 +8,7 @@ import { DEFAULT_MODELS, useSettings, type AIProvider, type Accent } from '@/sto
 import { initSync, resendConfirmation, signIn, signOut, signUp, syncNow, useSync } from '@/sync/sync'
 import { SUPABASE_SQL } from '@/sync/schema'
 import { cn } from '@/lib/utils'
+import { GcalSettings } from '@/gcal/GcalUI'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Label, Select, Textarea } from '@/components/ui/input'
@@ -452,6 +453,10 @@ export default function Settings() {
             </Button>
           )}
         </div>
+      </Section>
+
+      <Section id="gcal" icon={<CalendarDays />} title="Google Calendar" desc="Hiện lịch Google trong app, tránh xếp task trùng giờ bận, và đẩy lịch làm task lên Google Calendar để nhận nhắc trên điện thoại.">
+        <GcalSettings />
       </Section>
 
       <SyncSection />

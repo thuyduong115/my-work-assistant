@@ -6,6 +6,7 @@ import type { Task } from '@/db/types'
 import { useSettings } from '@/stores/settings'
 import { schedule } from './scheduler'
 import { dayKey } from './utils'
+import { busyBlocks, useGCal } from '@/gcal/gcal'
 
 interface RiskState {
   risks: { taskId: string; shortMin: number }[]
@@ -20,7 +21,7 @@ export async function runSchedule() {
   const tasks = (await db.tasks.toArray()).filter((t) => !t.deleted)
   const entries = (await db.timeEntries.toArray()).filter((e) => !e.deleted)
   const s = useSettings.getState()
-  const r = schedule(tasks, entries, { workHours: s.workHours, maxBlockMin: s.maxBlockMin, bufferPct: s.bufferPct })
+  const r = schedule(tasks, entries, { workHours: s.workHours, maxBlockMin: s.maxBlockMin, bufferPct: s.bufferPct, busy: busyBlocks(useGCal.getState().events) })
   const today = dayKey()
   const worked = new Set(entries.filter((e) => e.taskId).map((e) => e.taskId + '@' + dayKey(new Date(e.start))))
   const changed: (Partial<Task> & { id: string })[] = []
@@ -49,12 +50,14 @@ export async function runSchedule() {
 export function useAutoSchedule() {
   const tasks = useTasks()
   const { autoSchedule, workHours, maxBlockMin, bufferPct } = useSettings()
+  const gEvents = useGCal((s) => s.events)
   const sig = tasks
     ? JSON.stringify([
         tasks.map((t) => [t.id, t.status, t.estimateMin, t.deadline, t.scheduledDate, t.priority, t.pinned, t.parentId, t.pinned ? t.plan : 0]),
         workHours,
         maxBlockMin,
         bufferPct,
+        busyBlocks(gEvents),
       ])
     : ''
   useEffect(() => {

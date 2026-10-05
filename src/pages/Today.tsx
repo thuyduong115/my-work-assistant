@@ -23,6 +23,7 @@ import { Empty, Progress, Stat } from '@/components/ui/misc'
 import { TaskItem } from '@/components/TaskItem'
 import { Ring, TimerControls, useTimerView, PHASE_LABEL } from '@/components/Timer'
 import { HabitsToday } from './Habits'
+import { GcalToday } from '@/gcal/GcalUI'
 
 function greeting() {
   const h = new Date().getHours()
@@ -314,6 +315,7 @@ export default function Today() {
 
         <div className="grid content-start gap-5">
           <FocusCard />
+          <GcalToday />
           <AITop3 tasks={all} />
           <HabitsToday habits={habits} logs={logs} />
           {projects.filter((p) => p.status === 'active').length > 0 && <ProjectsMini />}

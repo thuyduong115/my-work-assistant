@@ -13,6 +13,7 @@ import { cn, dayKey, fmtMin, fromDayKey, hhmmToMin, minToHHMM } from '@/lib/util
 import { parseSlots, useSettings } from '@/stores/settings'
 import { useUI } from '@/stores/ui'
 import { useNow } from '@/lib/useNow'
+import { eventsOn, useGCal, type GEvent } from '@/gcal/gcal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Segmented } from '@/components/ui/misc'
@@ -79,7 +80,26 @@ function layoutDay(blocks: { task: Task; block: PlanBlock; idx: number }[]) {
   return items
 }
 
+const fmtT = (ms: number) => new Date(ms).toTimeString().slice(0, 5)
+
+function GChip({ e, className }: { e: GEvent; className?: string }) {
+  return (
+    <a
+      href={e.link}
+      target="_blank"
+      rel="noreferrer"
+      title={`Google Calendar: ${e.title}${e.allDay ? '' : ` (${fmtT(e.start)}–${fmtT(e.end)})`}`}
+      className={cn('flex items-center gap-1 truncate rounded px-1 py-0.5 text-left text-[10px] font-medium', className)}
+      style={{ background: `color-mix(in oklch, ${e.color} 22%, transparent)`, color: 'var(--foreground)' }}
+    >
+      <span className="size-1.5 shrink-0 rounded-full" style={{ background: e.color }} />
+      <span className="truncate">{e.allDay ? '' : fmtT(e.start) + ' '}{e.title}</span>
+    </a>
+  )
+}
+
 function TimeGrid({ days, tasks }: { days: Date[]; tasks: Task[] }) {
+  const gEvents = useGCal((s) => s.events)
   const { workHours } = useSettings()
   const entries = useTimeEntries()
   const color = useTaskColor()
@@ -162,6 +182,11 @@ function TimeGrid({ days, tasks }: { days: Date[]; tasks: Task[] }) {
                   <div className={cn('text-center text-xs font-medium capitalize', isT ? 'text-primary' : 'text-muted-foreground')}>{format(d, 'EEE', { locale: vi })}</div>
                   <div className={cn('mx-auto mt-0.5 grid size-8 place-items-center rounded-full text-base font-bold', isT && 'bg-primary text-primary-foreground')}>{format(d, 'd')}</div>
                   <div className="mt-1 grid gap-0.5">
+                    {eventsOn(gEvents, k)
+                      .filter((e) => e.allDay)
+                      .map((e) => (
+                        <GChip key={e.id} e={e} />
+                      ))}
                     {dl.slice(0, 3).map((t) => (
                       <button key={t.id} onClick={() => openTask(t.id)} className="flex items-center gap-1 truncate rounded bg-destructive/10 px-1 py-0.5 text-left text-[10px] font-medium text-destructive">
                         <Flag className="size-2.5 shrink-0" />
@@ -218,6 +243,34 @@ function TimeGrid({ days, tasks }: { days: Date[]; tasks: Task[] }) {
                       const sm = s.getHours() * 60 + s.getMinutes()
                       return <div key={en.id} title="Thời gian làm thực tế" className="absolute right-0 w-1 rounded-full bg-success" style={{ top: ((sm - H0 * 60) / 60) * PX, height: Math.max(3, ((en.end - en.start) / 3_600_000) * PX) }} />
                     })}
+                    {eventsOn(gEvents, k)
+                      .filter((e) => !e.allDay)
+                      .map((e) => {
+                        const dayStart = new Date(`${k}T00:00`).getTime()
+                        const sm = Math.max(H0 * 60, (Math.max(e.start, dayStart) - dayStart) / 60000)
+                        const em = Math.min(H1 * 60, (Math.min(e.end, dayStart + 86_400_000) - dayStart) / 60000)
+                        if (em <= sm) return null
+                        return (
+                          <a
+                            key={e.id}
+                            href={e.link}
+                            target="_blank"
+                            rel="noreferrer"
+                            onDoubleClick={(ev) => ev.stopPropagation()}
+                            title={`Google Calendar: ${e.title} (${fmtT(e.start)}–${fmtT(e.end)})`}
+                            className="absolute inset-x-0.5 overflow-hidden rounded-md border border-dashed px-1.5 py-0.5 text-[11px] leading-tight"
+                            style={{
+                              top: ((sm - H0 * 60) / 60) * PX + 1,
+                              height: Math.max(16, ((em - sm) / 60) * PX - 2),
+                              borderColor: e.color,
+                              background: `repeating-linear-gradient(135deg, color-mix(in oklch, ${e.color} 14%, var(--card)) 0 6px, color-mix(in oklch, ${e.color} 6%, var(--card)) 6px 12px)`,
+                            }}
+                          >
+                            <div className="truncate font-semibold">📅 {e.title}</div>
+                            {em - sm >= 40 && <div className="text-muted-foreground tabular">{fmtT(e.start)}–{fmtT(e.end)}</div>}
+                          </a>
+                        )
+                      })}
                     {dropHint?.k === k && <div className="pointer-events-none absolute inset-x-1 rounded-md border-2 border-dashed border-primary" style={{ top: ((dropHint.min - H0 * 60) / 60) * PX, height: PX / 2 }} />}
                     {items.map((it) => {
                       const min = resizing && resizing.taskId === it.task.id && resizing.idx === it.idx ? resizing.min : it.block.min
@@ -276,6 +329,7 @@ function TimeGrid({ days, tasks }: { days: Date[]; tasks: Task[] }) {
 }
 
 function MonthGrid({ cursor, tasks, onPickDay }: { cursor: Date; tasks: Task[]; onPickDay: (d: Date) => void }) {
+  const gEvents = useGCal((s) => s.events)
   const color = useTaskColor()
   const openTask = useUI((s) => s.openTask)
   const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
@@ -329,6 +383,11 @@ function MonthGrid({ cursor, tasks, onPickDay }: { cursor: Date; tasks: Task[]; 
                 {total > 0 && <span className="text-[10px] text-muted-foreground">{fmtMin(total)}</span>}
               </div>
               <div className="grid gap-0.5">
+                {eventsOn(gEvents, k)
+                  .slice(0, 3)
+                  .map((e) => (
+                    <GChip key={e.id} e={e} />
+                  ))}
                 {dls.map((t) => (
                   <button
                     key={'d' + t.id}
@@ -367,6 +426,7 @@ function MonthGrid({ cursor, tasks, onPickDay }: { cursor: Date; tasks: Task[]; 
 }
 
 function Agenda({ tasks }: { tasks: Task[] }) {
+  const gEvents = useGCal((s) => s.events)
   const openTask = useUI((s) => s.openTask)
   const color = useTaskColor()
   const days = Array.from({ length: 14 }, (_, i) => addDays(new Date(), i))
@@ -376,7 +436,8 @@ function Agenda({ tasks }: { tasks: Task[] }) {
         const k = dayKey(d)
         const blocks = tasks.flatMap((t) => (t.plan ?? []).filter((b) => b.date === k).map((b) => ({ t, b }))).sort((a, b) => (a.b.start < b.b.start ? -1 : 1))
         const dls = tasks.filter((t) => t.deadline === k && t.status !== 'done')
-        if (!blocks.length && !dls.length) return null
+        const gev = eventsOn(gEvents, k)
+        if (!blocks.length && !dls.length && !gev.length) return null
         return (
           <Card key={k} className="p-4">
             <div className="mb-2 flex items-baseline gap-2">
@@ -389,6 +450,13 @@ function Agenda({ tasks }: { tasks: Task[] }) {
                 <button key={'d' + t.id} onClick={() => openTask(t.id)} className="flex items-center gap-2 rounded-lg px-2 py-1 text-left text-sm text-destructive hover:bg-muted">
                   <Flag className="size-3.5" /> Deadline: {t.title}
                 </button>
+              ))}
+              {gev.map((e) => (
+                <a key={e.id} href={e.link} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-lg px-2 py-1 text-sm hover:bg-muted">
+                  <span className="w-24 shrink-0 font-mono text-xs text-muted-foreground tabular">{e.allDay ? 'Cả ngày' : `${fmtT(e.start)}–${fmtT(e.end)}`}</span>
+                  <span className="h-4 w-1 rounded-full" style={{ background: e.color }} />
+                  <span className="truncate">📅 {e.title}</span>
+                </a>
               ))}
               {blocks.map(({ t, b }, i) => (
                 <button key={t.id + i} onClick={() => openTask(t.id)} className="flex items-center gap-3 rounded-lg px-2 py-1 text-left text-sm hover:bg-muted">

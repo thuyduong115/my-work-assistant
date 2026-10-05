@@ -13,6 +13,7 @@ import { usePip } from '@/stores/pip'
 import { applyTheme, useSettings } from '@/stores/settings'
 import { onLocalChange } from '@/db/db'
 import { syncNow } from '@/sync/sync'
+import { syncGcal } from '@/gcal/gcal'
 import Today from '@/pages/Today'
 
 const Inbox = lazy(() => import('@/pages/Inbox'))
@@ -70,9 +71,31 @@ function useRefreshKey(pathname: string) {
   return `${pathname}:${nonce}`
 }
 
+/** Keep Google Calendar in sync: on start, every 15 min, on focus, and after edits */
+function useGcalSync() {
+  useEffect(() => {
+    void syncGcal()
+    let t: ReturnType<typeof setTimeout> | undefined
+    const off = onLocalChange(() => {
+      clearTimeout(t)
+      t = setTimeout(() => void syncGcal(), 15_000)
+    })
+    const iv = setInterval(() => void syncGcal(), 15 * 60_000)
+    const vis = () => document.visibilityState === 'visible' && void syncGcal()
+    document.addEventListener('visibilitychange', vis)
+    return () => {
+      off()
+      clearTimeout(t)
+      clearInterval(iv)
+      document.removeEventListener('visibilitychange', vis)
+    }
+  }, [])
+}
+
 function Main() {
   const { pathname } = useLocation()
   const refreshKey = useRefreshKey(pathname)
+  useGcalSync()
   useTimerEngine()
   useAutoSchedule()
   const pip = usePip((s) => s.win)

@@ -12,6 +12,8 @@ export interface ScheduleOptions {
   maxBlockMin: number
   bufferPct: number
   now?: Date
+  /** fixed busy time (e.g. Google Calendar events) */
+  busy?: PlanBlock[]
 }
 
 export interface ScheduleResult {
@@ -83,6 +85,8 @@ export function schedule(all: Task[], entries: TimeEntry[], opts: ScheduleOption
     }
     free.set(date, out.filter(([a, b]) => b - a >= 5))
   }
+
+  for (const b of opts.busy ?? []) if (b.date >= today) occupy(b.date, hhmmToMin(b.start), b.min)
 
   const open = leafTasks(all).filter((t) => t.status !== 'done' && !t.deleted)
   const pinned = open.filter((t) => t.pinned && t.plan?.length)

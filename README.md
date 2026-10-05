@@ -19,6 +19,7 @@ Trợ lý công việc cá nhân kiểu **Notion + Trello + AI** — chạy hoà
 | 🔁 **Thói quen** | Habit tracker theo ngày trong tuần, số lần/ngày, chuỗi, heatmap. |
 | ⏱️ **Tập trung** | Pomodoro / bấm giờ gắn với task, âm thanh nền (mưa, sóng nâu), thông báo. |
 | 🪟 **Cửa sổ mini luôn nổi** | Picture-in-Picture (Chrome/Edge) — timer + task hiện tại nằm trên mọi cửa sổ. |
+| 📆 **Google Calendar** | Lấy sự kiện Google (tránh xếp task trùng giờ bận) và đẩy lịch làm task lên Google để nhận nhắc trên điện thoại — xem [docs/GOOGLE_CALENDAR.md](docs/GOOGLE_CALENDAR.md). |
 | ☁️ **Đồng bộ Supabase** | Offline-first, tự đồng bộ + realtime giữa laptop và điện thoại. |
 | 🎨 **Giao diện** | Sáng / tối / theo hệ thống, 6 màu nhấn, responsive, Ctrl+K, phím tắt. |
 
