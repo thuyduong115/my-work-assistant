@@ -5,7 +5,7 @@ import './index.css'
 import App from './App'
 import { seed } from './db/db'
 import { initSync } from './sync/sync'
-import { reloadOnce } from './components/ErrorBoundary'
+import { ErrorBoundary, reloadOnce } from './components/ErrorBoundary'
 
 void seed()
 if (!location.hash.startsWith('#/mini')) void initSync()
@@ -17,6 +17,8 @@ window.addEventListener('vite:preloadError', (e) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary resetKey="root" fullScreen>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

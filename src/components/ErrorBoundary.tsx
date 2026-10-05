@@ -20,7 +20,7 @@ interface State {
 }
 
 /** Keeps one broken page from blanking the whole app; resets when `resetKey` (the route) changes */
-export class ErrorBoundary extends Component<{ children: ReactNode; resetKey: string }, State> {
+export class ErrorBoundary extends Component<{ children: ReactNode; resetKey: string; fullScreen?: boolean }, State> {
   state: State = { error: null }
 
   static getDerivedStateFromError(error: Error): State {
@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey: st
   render() {
     if (!this.state.error) return this.props.children
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center gap-3 py-20 text-center">
+      <div className={`mx-auto flex max-w-md flex-col items-center gap-3 text-center ${this.props.fullScreen ? 'min-h-dvh justify-center px-4' : 'py-20'}`}>
         <span className="grid size-12 place-items-center rounded-2xl bg-destructive/10 text-destructive">
           <TriangleAlert className="size-6" />
         </span>
@@ -47,7 +47,11 @@ export class ErrorBoundary extends Component<{ children: ReactNode; resetKey: st
         <p className="text-sm text-muted-foreground">
           Nếu bạn đang bật tiện ích dịch trang (Google Dịch…), hãy tắt nó cho trang này — tiện ích dịch làm hỏng giao diện.
         </p>
-        <code className="max-w-full truncate rounded bg-muted px-2 py-1 text-xs text-muted-foreground">{this.state.error.message}</code>
+        <pre className="max-h-48 max-w-full overflow-auto rounded bg-muted px-3 py-2 text-left text-xs whitespace-pre-wrap text-muted-foreground">
+          {this.state.error.message}
+          {'\n'}
+          {this.state.error.stack?.split('\n').slice(1, 5).join('\n')}
+        </pre>
         <Button onClick={() => location.reload()}>
           <RefreshCw /> Tải lại
         </Button>

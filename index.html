@@ -23,6 +23,58 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      /* Startup watchdog: if the app hasn't rendered after a few seconds (stale
+         offline cache or a startup crash), clear caches and reload once; if it
+         still fails, show the error on screen instead of a blank page. */
+      (function () {
+        var errors = [];
+        window.__mwaErrors = errors;
+        window.addEventListener('error', function (e) {
+          var t = e.target;
+          if (t && t !== window && (t.src || t.href)) errors.push('Không tải được file: ' + (t.src || t.href));
+          else errors.push((e.message || 'Error') + (e.filename ? ' @ ' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+          setTimeout(check, 800);
+        }, true);
+        window.addEventListener('unhandledrejection', function (e) {
+          errors.push('Promise: ' + (e.reason && (e.reason.stack || e.reason.message) || e.reason));
+        });
+        function rendered() {
+          var r = document.getElementById('root');
+          return r && r.children.length > 0;
+        }
+        function heal() {
+          sessionStorage.setItem('mwa-healed', String(Date.now()));
+          var jobs = [];
+          if (navigator.serviceWorker) jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+          if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+          Promise.all(jobs).catch(function () {}).then(function () { location.reload(); });
+        }
+        function overlay() {
+          if (document.getElementById('mwa-crash')) return;
+          var d = document.createElement('div');
+          d.id = 'mwa-crash';
+          d.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;background:#0b0b10;color:#eee;font:14px system-ui,sans-serif';
+          d.innerHTML = '<div style="max-width:640px;width:100%"><h2 style="margin:0 0 8px;font-size:20px">App chưa khởi động được 😥</h2>' +
+            '<p style="margin:0 0 12px;color:#aaa">Hãy chụp màn hình khung bên dưới gửi cho người hỗ trợ. Dữ liệu của bạn vẫn an toàn.</p>' +
+            '<pre id="mwa-err" style="white-space:pre-wrap;word-break:break-word;max-height:45vh;overflow:auto;background:#1b1b24;padding:12px;border-radius:10px;font-size:12px;color:#fca5a5"></pre>' +
+            '<div style="display:flex;gap:8px;margin-top:12px"><button id="mwa-r1" style="padding:8px 14px;border-radius:8px;border:0;background:#8b5cf6;color:#fff;cursor:pointer">Tải lại</button>' +
+            '<button id="mwa-r2" style="padding:8px 14px;border-radius:8px;border:1px solid #444;background:transparent;color:#eee;cursor:pointer">Xoá bộ nhớ đệm &amp; tải lại</button></div></div>';
+          document.body.appendChild(d);
+          document.getElementById('mwa-err').textContent = (errors.length ? errors.join('\n\n') : 'Không có lỗi JS — có thể file bị chặn (tiện ích trình duyệt / mạng).') + '\n\nURL: ' + location.href + '\nUA: ' + navigator.userAgent;
+          document.getElementById('mwa-r1').onclick = function () { location.reload(); };
+          document.getElementById('mwa-r2').onclick = heal;
+        }
+        function check() {
+          if (rendered()) { var o = document.getElementById('mwa-crash'); if (o) o.remove(); return; }
+          var last = +sessionStorage.getItem('mwa-healed') || 0;
+          if (Date.now() - last > 60000) heal();
+          else overlay();
+        }
+        window.addEventListener('load', function () { setTimeout(check, 6000); });
+        window.__mwaCheck = check;
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
