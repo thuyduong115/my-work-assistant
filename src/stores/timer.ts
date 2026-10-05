@@ -17,7 +17,9 @@ interface TimerState {
   /** ms accumulated in this phase before the current segment */
   accumulated: number
   cycles: number
-  start: (opts?: { taskId?: string; mode?: TimerMode }) => void
+  /** one-off focus length (e.g. the 2-minute starter); cleared when the phase ends */
+  customMin?: number
+  start: (opts?: { taskId?: string; mode?: TimerMode; minutes?: number }) => void
   pause: () => void
   resume: () => void
   stop: () => void
@@ -27,6 +29,8 @@ interface TimerState {
 }
 
 export function phaseMinutes(phase: Phase) {
+  const custom = useTimer.getState().customMin
+  if (phase === 'focus' && custom) return custom
   const p = useSettings.getState().pomodoro
   return phase === 'focus' ? p.focus : phase === 'short' ? p.short : p.long
 }
@@ -53,7 +57,8 @@ export const useTimer = create<TimerState>()(
         const s = get()
         void saveSegment(s)
         set({
-          mode: opts?.mode ?? s.mode,
+          customMin: opts?.minutes,
+          mode: opts?.minutes ? 'pomodoro' : (opts?.mode ?? s.mode),
           taskId: opts?.taskId ?? s.taskId,
           phase: 'focus',
           running: true,
@@ -73,7 +78,7 @@ export const useTimer = create<TimerState>()(
       },
       stop: () => {
         void saveSegment(get())
-        set({ running: false, startedAt: undefined, accumulated: 0, phase: 'focus' })
+        set({ running: false, startedAt: undefined, accumulated: 0, phase: 'focus', customMin: undefined })
       },
       skip: () => get().completePhase(),
       setTask: (taskId) => {
@@ -87,6 +92,12 @@ export const useTimer = create<TimerState>()(
         const s = get()
         const st = useSettings.getState().pomodoro
         void saveSegment(s)
+        if (s.phase === 'focus' && s.customMin) {
+          // the 2-minute starter is done — momentum beats a break
+          set({ customMin: undefined, accumulated: 0, running: false, startedAt: undefined })
+          notify('⚡ Xong 2 phút!', 'Khó nhất là bắt đầu — làm tiếp một pomodoro nhé?')
+          return
+        }
         if (s.phase === 'focus') {
           const cycles = s.cycles + 1
           const phase: Phase = cycles % st.longEvery === 0 ? 'long' : 'short'

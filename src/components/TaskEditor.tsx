@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Plus, Sparkles, Trash2, Play, X, Lightbulb } from 'lucide-react'
+import { Loader2, Plus, Sparkles, Trash2, Play, X, Lightbulb, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { db } from '@/db/db'
 import { useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
@@ -272,6 +272,9 @@ export function TaskEditor() {
                 Bước con {subs.length > 0 && <span className="text-muted-foreground">({subs.filter((s) => s.status === 'done').length}/{subs.length})</span>}
               </div>
               <div className="flex gap-1.5">
+                <Button size="sm" variant="outline" onClick={() => useUI.getState().openTwoMin(task.id)} title="Ngại bắt đầu? Làm 1 việc nhỏ trong 2 phút">
+                  <Zap className="text-amber-500" /> 2 phút
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => timer.start({ taskId: task.id })}>
                   <Play /> Tập trung
                 </Button>

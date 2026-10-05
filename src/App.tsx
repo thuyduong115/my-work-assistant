@@ -6,6 +6,8 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { TaskEditor } from '@/components/TaskEditor'
 import { QuickCapture } from '@/components/QuickCapture'
 import { CommandPalette } from '@/components/CommandPalette'
+import { ChatAssistant } from '@/components/ChatAssistant'
+import { TwoMinuteDialog } from '@/components/TwoMinute'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MiniTimer, useTimerEngine } from '@/components/Timer'
 import { useAutoSchedule } from '@/lib/autoSchedule'
@@ -127,6 +129,8 @@ function Main() {
       <TaskEditor />
       <QuickCapture />
       <CommandPalette />
+      <TwoMinuteDialog />
+      <ChatAssistant />
       <Toaster position="bottom-right" theme={theme === 'system' ? 'system' : dark ? 'dark' : 'light'} richColors closeButton offset={{ bottom: 80, right: 16 }} />
       {pip && createPortal(<MiniTimer />, pip.document.body)}
     </>

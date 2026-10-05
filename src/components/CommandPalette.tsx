@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Command } from 'cmdk'
 import { useNavigate } from 'react-router-dom'
-import { Moon, Plus, Sparkles, Sun, Timer, PictureInPicture2, CheckSquare } from 'lucide-react'
+import { Bot, Moon, Plus, Sparkles, Sun, Timer, PictureInPicture2, CheckSquare } from 'lucide-react'
 import { useTasks } from '@/db/hooks'
 import { useSettings } from '@/stores/settings'
 import { useTimerView } from './Timer'
@@ -64,6 +64,9 @@ export function CommandPalette() {
         <Command.Group heading="Hành động" className="text-xs text-muted-foreground [&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-1.5">
           <Command.Item className={item} onSelect={() => run(() => openCapture())}>
             <Sparkles /> Nhập nhanh bằng AI <kbd className="ml-auto text-[10px]">N</kbd>
+          </Command.Item>
+          <Command.Item className={item} onSelect={() => run(() => useUI.getState().setChat(true))}>
+            <Bot /> Chat với trợ lý AI
           </Command.Item>
           <Command.Item className={item} onSelect={() => run(() => createTask())}>
             <Plus /> Thêm task thủ công <kbd className="ml-auto text-[10px]">A</kbd>

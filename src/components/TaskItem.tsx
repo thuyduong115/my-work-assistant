@@ -1,4 +1,4 @@
-import { CalendarClock, Clock, MoreHorizontal, Play, Repeat, SkipForward, Trash2, Pencil, Sparkles, AlertTriangle, ListTree } from 'lucide-react'
+import { CalendarClock, Clock, MoreHorizontal, Play, Repeat, SkipForward, Trash2, Pencil, Zap, AlertTriangle, ListTree } from 'lucide-react'
 import { differenceInCalendarDays } from 'date-fns'
 import { useProjects } from '@/db/hooks'
 import { deleteTask, postpone } from '@/db/actions'
@@ -128,8 +128,8 @@ export function TaskItem({
             >
               <SkipForward /> Dời sang mai
             </DropdownItem>
-            <DropdownItem onSelect={() => openTask(task.id)}>
-              <Sparkles /> AI: bước khởi động 2 phút
+            <DropdownItem onSelect={() => useUI.getState().openTwoMin(task.id)}>
+              <Zap /> Bắt đầu 2 phút
             </DropdownItem>
             <DropdownSeparator />
             <DropdownItem

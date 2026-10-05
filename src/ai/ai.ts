@@ -276,3 +276,45 @@ export async function aiWeeklyReview(summary: string): Promise<string> {
   const system = `Bạn là coach năng suất cá nhân. Viết nhận xét tuần ngắn gọn bằng tiếng Việt (markdown đơn giản, ≤ 180 từ): 1) Điểm làm tốt, 2) Dấu hiệu trì hoãn, 3) 3 đề xuất cụ thể cho tuần tới. Giọng ấm áp, thẳng thắn.`
   return call(system, summary, false)
 }
+
+export async function aiFirstStep(task: Task): Promise<{ step: string; why: string }> {
+  const system = `Bạn là coach chống trì hoãn theo "quy tắc 2 phút". Đưa ra ĐÚNG MỘT hành động vật lý, cụ thể, làm xong trong ≤ 2 phút để bắt đầu task (VD: "Mở file báo cáo và gõ tiêu đề chương 4"). Không khuyên chung chung.
+Trả về JSON: {"step": string (≤ 20 từ, bắt đầu bằng động từ), "why": string (≤ 15 từ, vì sao bước này giúp vượt trì hoãn)}. Tiếng Việt.`
+  const user = `Task: ${task.title}\nGhi chú: ${task.notes ?? ''}\nĐã bị dời: ${task.postponeCount} lần`
+  const r = extractJSON(await call(system, user)) as { step?: string; why?: string }
+  if (!r?.step) throw new AIError('AI trả về sai định dạng.')
+  return { step: r.step, why: r.why ?? '' }
+}
+
+export interface ChatMsg {
+  role: 'user' | 'assistant'
+  text: string
+  tasks?: AITask[]
+}
+
+/** Assistant chat grounded in the user's current tasks; may propose tasks to add */
+export async function aiChat(history: ChatMsg[], context: string): Promise<ChatMsg> {
+  const system = `Bạn là "Trợ lý công việc" thân thiện, nói tiếng Việt, trong app quản lý công việc cá nhân. Bạn giúp: gợi ý nên làm gì, lên kế hoạch ngày/tuần, chia nhỏ việc, chống trì hoãn, gợi ý thói quen, động viên.
+Dữ liệu hiện tại của người dùng (chỉ đọc):
+${context}
+
+Quy tắc:
+- Trả lời ngắn gọn, cụ thể, dựa trên dữ liệu thật ở trên (nhắc đúng tên task). Dùng gạch đầu dòng khi liệt kê. Tối đa ~150 từ.
+- Khi phù hợp, đề xuất task mới để người dùng bấm thêm (tối đa 6) trong mảng "tasks"; nếu không cần thì để mảng rỗng.
+- Chỉ trả về JSON: {"reply": string, "tasks": [{"title": string, "estimateMin": number, "priority": "low"|"medium"|"high"|"urgent", "deadline": "YYYY-MM-DD"|null, "notes": string}]}`
+  const convo = history
+    .slice(-12)
+    .map((m) => `${m.role === 'user' ? 'Người dùng' : 'Trợ lý'}: ${m.text}`)
+    .join('\n')
+  const r = extractJSON(await call(system, `${calendarContext()}\n\nHội thoại:\n${convo}\n\nTrợ lý (JSON):`)) as { reply?: string; tasks?: AITask[] }
+  const tasks = (Array.isArray(r?.tasks) ? r.tasks : [])
+    .filter((t) => t && t.title)
+    .slice(0, 6)
+    .map((t) => ({
+      ...t,
+      estimateMin: Math.max(5, Math.round((Number(t.estimateMin) || 30) / 5) * 5),
+      priority: (['low', 'medium', 'high', 'urgent'] as const).includes(t.priority) ? t.priority : 'medium',
+      deadline: /^\d{4}-\d{2}-\d{2}$/.test(t.deadline ?? '') ? t.deadline : null,
+    }))
+  return { role: 'assistant', text: r?.reply?.trim() || '…', tasks }
+}

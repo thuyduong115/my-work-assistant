@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { addDays, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Legend, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { AlertTriangle, BrainCircuit, CalendarCheck, CheckCircle2, Clock, Flame, Loader2, Repeat, Sparkles, Trophy, TrendingUp } from 'lucide-react'
+import { Zap, AlertTriangle, BrainCircuit, CalendarCheck, CheckCircle2, Clock, Flame, Loader2, Repeat, Sparkles, Trophy, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHabitLogs, useHabits, useTasks, useTimeEntries } from '@/db/hooks'
 import { aiConfig, aiWeeklyReview } from '@/ai/ai'
@@ -212,6 +212,9 @@ export default function Dashboard() {
                   <div className="min-w-0 flex-1">
                     <TaskItem task={t} actualMin={d.actual.get(t.id)} />
                   </div>
+                  <Button size="sm" onClick={() => useUI.getState().openTwoMin(t.id)} className="bg-amber-500 hover:bg-amber-500/90">
+                    <Zap /> 2 phút
+                  </Button>
                   <Button size="sm" variant="soft" onClick={() => openTask(t.id)}>
                     <Sparkles /> Chia nhỏ
                   </Button>
