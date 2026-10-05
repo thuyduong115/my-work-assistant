@@ -18,7 +18,7 @@ import { CheckCircle } from './ui/misc'
 
 type Form = Pick<
   Task,
-  'title' | 'notes' | 'projectId' | 'roleId' | 'status' | 'priority' | 'estimateMin' | 'deadline' | 'deadlineTime' | 'scheduledDate' | 'energy' | 'recurrence' | 'parentId'
+  'title' | 'notes' | 'projectId' | 'roleId' | 'status' | 'priority' | 'estimateMin' | 'deadline' | 'deadlineTime' | 'scheduledDate' | 'scheduledTime' | 'energy' | 'recurrence' | 'parentId'
 >
 
 const EST_PRESETS = [15, 30, 45, 60, 90, 120, 180, 240]
@@ -55,6 +55,7 @@ export function TaskEditor() {
       deadline: src.deadline,
       deadlineTime: src.deadlineTime,
       scheduledDate: src.scheduledDate,
+      scheduledTime: src.scheduledTime,
       energy: src.energy,
       recurrence: src.recurrence,
       parentId: src.parentId,
@@ -76,6 +77,7 @@ export function TaskEditor() {
       title: form.title.trim(),
       deadline: form.deadline || undefined,
       scheduledDate: form.scheduledDate || undefined,
+      scheduledTime: form.scheduledDate && form.scheduledTime ? form.scheduledTime : undefined,
       deadlineTime: form.deadlineTime || undefined,
       projectId: form.projectId || undefined,
       roleId: form.roleId || undefined,
@@ -88,7 +90,7 @@ export function TaskEditor() {
         await completeTask({ ...task, ...clean, status: 'todo' })
       } else {
         // changing the date/estimate un-pins auto plan
-        const replan = clean.estimateMin !== task.estimateMin || clean.deadline !== task.deadline || clean.scheduledDate !== task.scheduledDate
+        const replan = clean.estimateMin !== task.estimateMin || clean.deadline !== task.deadline || clean.scheduledDate !== task.scheduledDate || clean.scheduledTime !== task.scheduledTime
         await updateTask(task.id, { ...clean, ...(replan ? { pinned: false } : {}), doneAt: clean.status === 'done' ? task.doneAt : undefined })
       }
     } else {
@@ -213,6 +215,15 @@ export function TaskEditor() {
           <div>
             <Label>Ngày dự định làm</Label>
             <Input type="date" value={form.scheduledDate ?? ''} onChange={(e) => set({ scheduledDate: e.target.value })} />
+          </div>
+          <div>
+            <Label>Giờ bắt đầu (tuỳ chọn)</Label>
+            <Input
+              type="time"
+              value={form.scheduledTime ?? ''}
+              onChange={(e) => set({ scheduledTime: e.target.value, scheduledDate: form.scheduledDate || (e.target.value ? new Date().toLocaleDateString('sv-SE') : form.scheduledDate) })}
+              title="Để trống: AI tự xếp vào giờ rảnh. Có giờ: task được đặt cố định vào giờ này."
+            />
           </div>
           <div>
             <Label>Năng lượng cần</Label>

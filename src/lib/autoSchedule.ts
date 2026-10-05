@@ -53,7 +53,7 @@ export function useAutoSchedule() {
   const gEvents = useGCal((s) => s.events)
   const sig = tasks
     ? JSON.stringify([
-        tasks.map((t) => [t.id, t.status, t.estimateMin, t.deadline, t.scheduledDate, t.priority, t.pinned, t.parentId, t.pinned ? t.plan : 0]),
+        tasks.map((t) => [t.id, t.status, t.estimateMin, t.deadline, t.scheduledDate, t.scheduledTime, t.priority, t.pinned, t.parentId, t.pinned ? t.plan : 0]),
         workHours,
         maxBlockMin,
         bufferPct,

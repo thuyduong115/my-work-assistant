@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { CloudRain, Coffee, PictureInPicture2, Timer as TimerIcon, Volume2, VolumeX, Waves, Hourglass, Bell } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTasks, useTimeEntries } from '@/db/hooks'
-import { leafTasks } from '@/lib/scheduler'
+import { topTasks } from '@/lib/scheduler'
 import { playNoise, setNoiseVolume, stopNoise, type NoiseKind } from '@/lib/noise'
 import { dayKey, fmtClock, fmtMin } from '@/lib/utils'
 import { useSettings } from '@/stores/settings'
@@ -24,7 +24,7 @@ export default function Focus() {
   const [vol, setVol] = useState(0.25)
   const today = dayKey()
   const open = useMemo(() => {
-    const l = leafTasks(tasks).filter((t) => t.status !== 'done')
+    const l = topTasks(tasks).filter((t) => t.status !== 'done')
     const isToday = (t: (typeof l)[0]) => t.plan?.some((b) => b.date === today) || t.scheduledDate === today || (t.deadline && t.deadline <= today)
     return [...l.filter(isToday), ...l.filter((t) => !isToday(t))]
   }, [tasks, today])

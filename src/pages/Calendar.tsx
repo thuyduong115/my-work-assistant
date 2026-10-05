@@ -7,7 +7,7 @@ import { useProjects, useTasks, useTimeEntries } from '@/db/hooks'
 import { updateTask } from '@/db/actions'
 import { putMany } from '@/db/db'
 import { PRIORITY_COLOR, type PlanBlock, type Task } from '@/db/types'
-import { leafTasks } from '@/lib/scheduler'
+import { topTasks } from '@/lib/scheduler'
 import { runSchedule, useSchedule } from '@/lib/autoSchedule'
 import { cn, dayKey, fmtMin, fromDayKey, hhmmToMin, minToHHMM } from '@/lib/utils'
 import { parseSlots, useSettings } from '@/stores/settings'
@@ -478,7 +478,7 @@ function Agenda({ tasks }: { tasks: Task[] }) {
 function Backlog({ tasks }: { tasks: Task[] }) {
   const openTask = useUI((s) => s.openTask)
   const today = dayKey()
-  const list = leafTasks(tasks).filter((t) => t.status !== 'done' && !t.plan?.some((b) => b.date >= today))
+  const list = topTasks(tasks).filter((t) => t.status !== 'done' && !t.plan?.some((b) => b.date >= today))
   const risks = useSchedule((s) => s.risks)
   return (
     <div className="grid content-start gap-4">

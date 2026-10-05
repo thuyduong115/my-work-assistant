@@ -56,13 +56,30 @@ function nextDate(k: string, r: Recurrence) {
   }
 }
 
-/** Toggle done. Completing a recurring task spawns the next occurrence. */
-export async function toggleDone(task: Task) {
+/**
+ * Toggle done. Completing a recurring task spawns the next occurrence.
+ * Ticking the last open sub-step completes its parent; un-ticking one reopens it.
+ * Returns whether the task is now done, and the parent if it was auto-completed.
+ */
+export async function toggleDone(task: Task): Promise<{ done: boolean; parent?: Task }> {
   if (task.status === 'done') {
     await updateTask(task.id, { status: 'todo', doneAt: undefined })
-    return false
+    if (task.parentId) {
+      const parent = await db.tasks.get(task.parentId)
+      if (parent?.status === 'done') await updateTask(parent.id, { status: 'todo', doneAt: undefined })
+    }
+    return { done: false }
   }
   await updateTask(task.id, { status: 'done', doneAt: Date.now() })
+  let parentDone: Task | undefined
+  if (task.parentId) {
+    const parent = await db.tasks.get(task.parentId)
+    const siblings = (await db.tasks.where('parentId').equals(task.parentId).toArray()).filter((s) => !s.deleted)
+    if (parent && !parent.deleted && parent.status !== 'done' && siblings.every((s) => s.status === 'done')) {
+      await toggleDone(parent)
+      parentDone = parent
+    }
+  }
   if (task.recurrence) {
     const anchor = task.deadline ?? task.scheduledDate ?? dayKey()
     const next = dayKey(nextDate(anchor, task.recurrence))
@@ -79,7 +96,7 @@ export async function toggleDone(task: Task) {
       createdAt: Date.now(),
     })
   }
-  return true
+  return { done: true, parent: parentDone }
 }
 
 /** Move to tomorrow, counting the postponement (anti-procrastination data) */
@@ -94,6 +111,9 @@ export async function postpone(task: Task, days = 1) {
 }
 
 export async function setStatus(task: Task, status: Task['status']) {
-  if (status === 'done') return toggleDone({ ...task, status: 'todo' })
+  if (status === 'done') {
+    await toggleDone({ ...task, status: 'todo' })
+    return
+  }
   await updateTask(task.id, { status, doneAt: undefined })
 }

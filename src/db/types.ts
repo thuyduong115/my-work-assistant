@@ -49,6 +49,8 @@ export interface Task extends Base {
   deadlineTime?: string // HH:mm
   /** Day the user wants to do it (manual) */
   scheduledDate?: string
+  /** optional exact start time on scheduledDate (HH:mm) */
+  scheduledTime?: string
   plan?: PlanBlock[]
   /** if true, auto-scheduler keeps the plan */
   pinned?: boolean

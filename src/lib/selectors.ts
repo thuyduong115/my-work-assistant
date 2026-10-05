@@ -1,7 +1,7 @@
 import { addDays } from 'date-fns'
 import type { Task } from '@/db/types'
 import { dayKey, fmtMin } from './utils'
-import { leafTasks } from './scheduler'
+import { topTasks } from './scheduler'
 
 export interface TodayItem {
   task: Task
@@ -10,7 +10,7 @@ export interface TodayItem {
 }
 
 export function todayView(all: Task[], today = dayKey()) {
-  const leaves = leafTasks(all)
+  const leaves = topTasks(all)
   const items: TodayItem[] = []
   const missed: Task[] = []
   const overdue: Task[] = []

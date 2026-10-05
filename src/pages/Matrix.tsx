@@ -3,7 +3,7 @@ import { differenceInCalendarDays } from 'date-fns'
 import { useTasks, useTimeEntries } from '@/db/hooks'
 import { updateTask } from '@/db/actions'
 import type { Priority, Task } from '@/db/types'
-import { leafTasks, actualMinutes } from '@/lib/scheduler'
+import { topTasks, actualMinutes } from '@/lib/scheduler'
 import { fromDayKey } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/misc'
@@ -26,7 +26,7 @@ export default function Matrix() {
   const tasks = useTasks() ?? []
   const entries = useTimeEntries()
   const actual = useMemo(() => actualMinutes(entries), [entries])
-  const open = leafTasks(tasks).filter((t) => t.status !== 'done')
+  const open = topTasks(tasks).filter((t) => t.status !== 'done')
   const quad = (t: Task): Q => (isUrgent(t) ? (isImportant(t) ? 'do' : 'delegate') : isImportant(t) ? 'plan' : 'drop')
 
   return (

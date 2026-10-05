@@ -43,10 +43,17 @@ export function calibrationFactor(tasks: Task[], actual: Map<string, number>) {
   return Math.min(2, Math.max(0.8, act / est))
 }
 
-/** Tasks that are real work units (parents with subtasks are containers) */
-export function leafTasks(tasks: Task[]) {
-  const parents = new Set(tasks.filter((t) => t.parentId && !t.deleted).map((t) => t.parentId!))
-  return tasks.filter((t) => !parents.has(t.id))
+/** Tasks that get scheduled/listed: top-level only — sub-steps live inside their parent */
+export function topTasks(tasks: Task[]) {
+  return tasks.filter((t) => !t.parentId && !t.deleted)
+}
+
+/** Remaining estimate: open sub-steps' estimates when the task has sub-steps, else its own */
+export function remainingEstimate(t: Task, all: Task[], actual: Map<string, number>) {
+  const subs = all.filter((c) => c.parentId === t.id && !c.deleted)
+  if (!subs.length) return t.estimateMin - (actual.get(t.id) ?? 0)
+  const open = subs.filter((c) => c.status !== 'done')
+  return open.reduce((s, c) => s + c.estimateMin - (actual.get(c.id) ?? 0), 0) - (actual.get(t.id) ?? 0) * (open.length / subs.length)
 }
 
 type Interval = [number, number]
@@ -88,7 +95,7 @@ export function schedule(all: Task[], entries: TimeEntry[], opts: ScheduleOption
 
   for (const b of opts.busy ?? []) if (b.date >= today) occupy(b.date, hhmmToMin(b.start), b.min)
 
-  const open = leafTasks(all).filter((t) => t.status !== 'done' && !t.deleted)
+  const open = topTasks(all).filter((t) => t.status !== 'done')
   const pinned = open.filter((t) => t.pinned && t.plan?.length)
   for (const t of pinned) for (const b of t.plan!) if (b.date >= today) occupy(b.date, hhmmToMin(b.start), b.min)
 
@@ -127,8 +134,18 @@ export function schedule(all: Task[], entries: TimeEntry[], opts: ScheduleOption
     return { blocks, remaining }
   }
 
+  // tasks with a chosen time: one fixed block at that time, placed before the rest
   for (const t of candidates) {
-    let remaining = Math.max(0, Math.round(t.estimateMin * factor - (actual.get(t.id) ?? 0)))
+    if (!t.scheduledDate || !t.scheduledTime || t.scheduledDate < today) continue
+    const len = Math.min(8 * 60, Math.max(MIN_CHUNK, Math.round(remainingEstimate(t, all, actual) * factor)))
+    const start = hhmmToMin(t.scheduledTime)
+    occupy(t.scheduledDate, start, len)
+    plans.set(t.id, [{ date: t.scheduledDate, start: t.scheduledTime, min: len }])
+  }
+
+  for (const t of candidates) {
+    if (plans.has(t.id)) continue
+    let remaining = Math.max(0, Math.round(remainingEstimate(t, all, actual) * factor))
     if (remaining === 0) remaining = MIN_CHUNK
     const fromDay = t.scheduledDate && t.scheduledDate > today ? t.scheduledDate : today
     let blocks: PlanBlock[] = []

@@ -6,7 +6,12 @@ import type { Task } from '@/db/types'
 const CHEERS = ['Tuyệt vời! 🎉', 'Xong một việc! 💪', 'Giỏi lắm! ✨', 'Tiến lên! 🚀', 'Thêm XP rồi nè! ⭐', 'Bạn đang làm rất tốt! 🌸']
 
 export async function completeTask(task: Task) {
-  const done = await toggleDone(task)
+  const { done, parent } = await toggleDone(task)
+  if (parent) {
+    void confetti({ particleCount: 140, spread: 100, startVelocity: 40, origin: { y: 0.6 }, colors: ['#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#eab308'], disableForReducedMotion: true })
+    toast.success('Hoàn thành cả task! 🏆', { description: `Đủ bước con → "${parent.title}" đã xong` })
+    return
+  }
   if (done) {
     const rect = document.activeElement?.getBoundingClientRect()
     void confetti({
