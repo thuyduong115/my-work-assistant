@@ -135,6 +135,10 @@ async function call(system: string, user: string, json = true): Promise<string> 
   if (!res.ok) {
     const msg = await errorMessage(res)
     if (res.status === 429) throw new AIError('Hết lượt miễn phí tạm thời (429). Đợi 1 phút rồi thử lại. ' + msg)
+    if (/has not been used in project|is disabled|SERVICE_DISABLED/i.test(msg))
+      throw new AIError(
+        'Key này thuộc Google Cloud (Vertex AI) nhưng project chưa bật API. Cách dễ nhất: vào aistudio.google.com/apikey → "Create API key" để lấy key miễn phí dạng AIza… rồi dán vào đây. (Hoặc bấm link trong lỗi gốc để bật API.) Lỗi gốc: ' + msg,
+      )
     if (res.status === 401 || res.status === 403) throw new AIError(`API key bị từ chối (${res.status}): ${msg}`)
     if (res.status === 404) throw new AIError(`Không tìm thấy model "${usedModel}" (404): ${msg}`)
     throw new AIError(`Lỗi AI (${res.status}): ${msg}`)

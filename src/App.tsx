@@ -6,6 +6,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { TaskEditor } from '@/components/TaskEditor'
 import { QuickCapture } from '@/components/QuickCapture'
 import { CommandPalette } from '@/components/CommandPalette'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MiniTimer, useTimerEngine } from '@/components/Timer'
 import { useAutoSchedule } from '@/lib/autoSchedule'
 import { usePip } from '@/stores/pip'
@@ -30,6 +31,7 @@ function ScrollTop() {
 }
 
 function Main() {
+  const { pathname } = useLocation()
   useTimerEngine()
   useAutoSchedule()
   const pip = usePip((s) => s.win)
@@ -39,6 +41,7 @@ function Main() {
     <>
       <ScrollTop />
       <AppLayout>
+        <ErrorBoundary resetKey={pathname}>
         <Suspense fallback={<div className="py-20 text-center text-sm text-muted-foreground">Đang tải…</div>}>
           <Routes>
             <Route path="/" element={<Today />} />
@@ -55,6 +58,7 @@ function Main() {
             <Route path="*" element={<Today />} />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
       </AppLayout>
       <TaskEditor />
       <QuickCapture />
