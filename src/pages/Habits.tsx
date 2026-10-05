@@ -192,6 +192,57 @@ export function HabitsToday({ habits, logs }: { habits: Habit[]; logs: HabitLog[
   )
 }
 
+/** Explicit buttons on each habit card: tick / +step / custom input for today */
+function HabitActions({ h, logs, onOpen }: { h: Habit; logs: HabitLog[]; onOpen: () => void }) {
+  const v = logValue(logs, h, dayKey())
+  const ok = isHabitDone(h, v)
+  if (habitKind(h) === 'check')
+    return (
+      <Button size="sm" variant={ok ? 'soft' : 'default'} onClick={() => void tapHabit(h, logs)} style={ok ? undefined : { background: h.color }}>
+        <Check /> {ok ? 'Đã xong' : 'Xong hôm nay'}
+      </Button>
+    )
+  return (
+    <div className="flex items-center gap-1">
+      <Button size="sm" onClick={() => void tapHabit(h, logs)} style={{ background: h.color }} title="Cộng cho hôm nay">
+        <Plus /> {fmtAmount(habitStep(h), habitUnit(h))}
+      </Button>
+      <Button size="sm" variant="outline" onClick={onOpen} title="Nhập số tuỳ ý">
+        Nhập
+      </Button>
+    </div>
+  )
+}
+
+function HabitStats({ h, logs, streak, best }: { h: Habit; logs: HabitLog[]; streak: number; best: number }) {
+  const unit = habitUnit(h)
+  const kind = habitKind(h)
+  const today = dayKey()
+  const vals = new Map(logs.map((l) => [l.date, l.count]))
+  const last = (n: number) => Array.from({ length: n }, (_, i) => dayKey(addDays(new Date(), -i))).filter((k) => habitActiveOn(h, k) && k >= dayKey(new Date(h.createdAt)))
+  const d7 = last(7)
+  const d30 = last(30)
+  const sum7 = d7.reduce((s, k) => s + (vals.get(k) ?? 0), 0)
+  const rate30 = d30.length ? d30.filter((k) => isHabitDone(h, vals.get(k) ?? 0)).length / d30.length : 0
+  const v = vals.get(today) ?? 0
+  const items: [string, string][] = [
+    ['Hôm nay', kind === 'check' ? (v >= 1 ? '✓ Xong' : 'Chưa') : `${fmtAmount(v, unit)} / ${fmtAmount(habitTarget(h), unit)}`],
+    [kind === 'check' ? '7 ngày qua' : 'TB 7 ngày', kind === 'check' ? `${d7.filter((k) => (vals.get(k) ?? 0) >= 1).length}/${d7.length} ngày` : fmtAmount(d7.length ? sum7 / d7.length : 0, unit)],
+    ['Đạt 30 ngày', `${Math.round(rate30 * 100)}%`],
+    ['Chuỗi / kỷ lục', `${streak} / ${best} ngày`],
+  ]
+  return (
+    <div className="grid grid-cols-2 gap-2 self-stretch">
+      {items.map(([l, val]) => (
+        <div key={l} className="rounded-lg bg-muted/60 px-3 py-2">
+          <div className="text-[11px] text-muted-foreground">{l}</div>
+          <div className="truncate text-sm font-semibold tabular">{val}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 const WD = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
 const UNITS = ['ml', 'L', 'ly', 'trang', 'từ', 'bước', 'km', 'lần', 'bài', 'g', 'kcal']
 
@@ -380,7 +431,8 @@ export default function Habits() {
   const [edit, setEdit] = useState<{ habit?: Habit } | null>(null)
   const [logFor, setLogFor] = useState<{ id: string; date: string } | null>(null)
   const today = new Date()
-  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6))
+  // 3 days back, today in the middle, 3 days ahead
+  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 3))
 
   const stats = useMemo(() => {
     const tk = dayKey()
@@ -455,6 +507,7 @@ export default function Habits() {
                       🔥 {s} ngày · kỷ lục {best} · {kind === 'check' ? 'tick' : `${h.goal === 'atMost' ? '≤' : '≥'} ${fmtAmount(habitTarget(h), unit)}, +${fmtAmount(habitStep(h), unit)}/lần`} · {h.days.length === 7 ? 'mỗi ngày' : h.days.map((d) => WD[d]).join(' ')}
                     </div>
                   </div>
+                  <HabitActions h={h} logs={logs} onOpen={() => setLogFor({ id: h.id, date: dayKey() })} />
                   <Button size="icon-sm" variant="ghost" onClick={() => setEdit({ habit: h })} aria-label="Sửa">
                     <Pencil />
                   </Button>
@@ -467,14 +520,21 @@ export default function Habits() {
                       const ok = isHabitDone(h, v)
                       const active = h.days.includes(getDay(d))
                       const fill = h.goal === 'atMost' ? v > 0 && ok : ok
+                      const isToday = k === dayKey()
+                      const future = k > dayKey()
                       return (
                         <button
                           key={k}
+                          disabled={future}
                           onClick={() => (kind === 'check' ? void setHabitValue(h, logs, k, v >= 1 ? 0 : 1) : setLogFor({ id: h.id, date: k }))}
-                          className={cn('flex flex-col items-center gap-1 rounded-lg py-1.5 text-[11px] transition hover:bg-muted', !active && 'opacity-40')}
+                          className={cn(
+                            'flex flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] transition hover:bg-muted disabled:cursor-default disabled:opacity-35 disabled:hover:bg-transparent',
+                            !active && !future && 'opacity-40',
+                            isToday && 'bg-primary-soft/60 ring-1 ring-primary/40',
+                          )}
                           title={kind === 'check' ? undefined : fmtAmount(v, unit)}
                         >
-                          <span className="text-muted-foreground capitalize">{format(d, 'EEEEEE', { locale: vi })}</span>
+                          <span className={cn(isToday ? 'font-semibold text-primary' : 'text-muted-foreground capitalize')}>{isToday ? 'Hôm nay' : format(d, 'EEEEEE', { locale: vi })}</span>
                           {kind === 'check' ? (
                             <span className={cn('grid size-8 place-items-center rounded-full border-2 text-xs font-bold', ok && 'border-transparent text-white')} style={ok ? { background: h.color } : { borderColor: 'var(--border)' }}>
                               {ok ? <Check className="size-4" strokeWidth={3} /> : format(d, 'd')}
@@ -488,7 +548,10 @@ export default function Habits() {
                       )
                     })}
                   </div>
-                  <Heatmap values={values} weeks={20} color={h.color} max={habitTarget(h) || 1} cell={11} label={(v) => (kind === 'check' ? (v ? '✓' : '—') : fmtAmount(v, unit))} />
+                  <div className="grid items-start gap-4 sm:grid-cols-[auto_1fr]">
+                    <Heatmap values={values} weeks={18} color={h.color} max={habitTarget(h) || 1} cell={11} label={(v) => (kind === 'check' ? (v ? '✓' : '—') : fmtAmount(v, unit))} />
+                    <HabitStats h={h} logs={hl} streak={s} best={best} />
+                  </div>
                 </CardBody>
               </Card>
             )
