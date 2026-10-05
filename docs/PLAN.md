@@ -158,10 +158,9 @@ Sidebar (shadcn-admin layout)
 10. **Recurring tasks** — lặp hằng ngày/tuần/tháng (nộp báo cáo, họp nhóm).
 11. **Notes / Journal** kiểu Notion cho mỗi project (markdown editor — vd. BlockNote / Tiptap).
 12. **Templates** — "Ôn thi", "Viết paper", "Làm đồ án"… tạo sẵn bộ task.
-13. **Nhập bằng giọng nói** (Web Speech API, tiếng Việt).
-14. **Xuất lịch .ics** để đồng bộ sang Google Calendar.
-15. **Deadline học thuật** — tab riêng cho deadline môn học / hội nghị (phù hợp vai trò researcher).
-16. **Gamification nhẹ** — XP, level, huy hiệu ("7 ngày liên tục", "100 pomodoro").
+13. **Xuất lịch .ics** để đồng bộ sang Google Calendar.
+14. **Deadline học thuật** — tab riêng cho deadline môn học / hội nghị (phù hợp vai trò researcher).
+15. **Gamification nhẹ** — XP, level, huy hiệu ("7 ngày liên tục", "100 pomodoro").
 
 ---
 
@@ -212,7 +211,8 @@ my-work-assistant/
 - **Vai trò ban đầu:** Cá nhân.
 
 Đã làm: Phase 0–4 + phần lớn Phase 5 (review tuần AI, Eisenhower, recurring, ghi chú project, PiP mini window, âm thanh nền).
-Còn lại: templates, nhập bằng giọng nói, xuất .ics, nhắc deadline bằng thông báo đẩy.
+Còn lại: templates, xuất .ics, nhắc deadline bằng thông báo đẩy.
+Đã loại bỏ (không cần): nhập bằng giọng nói, body doubling / phòng tập trung chung.
 
 ## 12. Câu hỏi ban đầu (lưu lại)
 
