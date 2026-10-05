@@ -205,7 +205,16 @@ my-work-assistant/
 
 ---
 
-## 11. Quyết định cần chốt
+## 11. Quyết định đã chốt & tiến độ
+
+- **AI:** API miễn phí — Google Gemini (mặc định), Groq, OpenRouter; key lưu trên trình duyệt. Có bộ tách offline.
+- **Đồng bộ:** Supabase (offline-first, realtime) — xem `docs/SUPABASE.md`.
+- **Vai trò ban đầu:** Cá nhân.
+
+Đã làm: Phase 0–4 + phần lớn Phase 5 (review tuần AI, Eisenhower, recurring, ghi chú project, PiP mini window, âm thanh nền).
+Còn lại: templates, nhập bằng giọng nói, xuất .ics, nhắc deadline bằng thông báo đẩy.
+
+## 12. Câu hỏi ban đầu (lưu lại)
 
 1. **AI:** dùng API key cá nhân lưu trên trình duyệt (A) hay dựng Cloudflare Worker proxy (B)?
 2. **Đồng bộ đa thiết bị:** ngay từ đầu (Supabase, cần đăng nhập) hay để phase 5 (chỉ lưu local + backup JSON)?

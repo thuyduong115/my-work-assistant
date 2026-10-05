@@ -1,0 +1,99 @@
+import { addDays, addMonths, addWeeks, getDay, parseISO } from 'date-fns'
+import { db, put, remove, DEFAULT_ROLE_ID } from './db'
+import type { Recurrence, Task } from './types'
+import { dayKey, uid } from '@/lib/utils'
+
+export function newTask(partial: Partial<Task> = {}): Task {
+  const now = Date.now()
+  return {
+    id: uid(),
+    title: '',
+    status: 'todo',
+    priority: 'medium',
+    estimateMin: 30,
+    postponeCount: 0,
+    order: now,
+    createdAt: now,
+    updatedAt: now,
+    deleted: 0,
+    dirty: 1,
+    roleId: partial.projectId ? undefined : DEFAULT_ROLE_ID,
+    ...partial,
+  }
+}
+
+export async function createTask(partial: Partial<Task>) {
+  const t = newTask(partial)
+  if (t.projectId && !t.roleId) {
+    const p = await db.projects.get(t.projectId)
+    t.roleId = p?.roleId
+  }
+  return put('tasks', t)
+}
+
+export const updateTask = (id: string, patch: Partial<Task>) => put('tasks', { id, ...patch })
+
+export async function deleteTask(id: string) {
+  const subs = await db.tasks.where('parentId').equals(id).toArray()
+  for (const s of subs) await remove('tasks', s.id)
+  await remove('tasks', id)
+}
+
+function nextDate(k: string, r: Recurrence) {
+  const d = parseISO(k)
+  switch (r) {
+    case 'daily':
+      return addDays(d, 1)
+    case 'weekdays': {
+      let n = addDays(d, 1)
+      while ([0, 6].includes(getDay(n))) n = addDays(n, 1)
+      return n
+    }
+    case 'weekly':
+      return addWeeks(d, 1)
+    case 'monthly':
+      return addMonths(d, 1)
+  }
+}
+
+/** Toggle done. Completing a recurring task spawns the next occurrence. */
+export async function toggleDone(task: Task) {
+  if (task.status === 'done') {
+    await updateTask(task.id, { status: 'todo', doneAt: undefined })
+    return false
+  }
+  await updateTask(task.id, { status: 'done', doneAt: Date.now() })
+  if (task.recurrence) {
+    const anchor = task.deadline ?? task.scheduledDate ?? dayKey()
+    const next = dayKey(nextDate(anchor, task.recurrence))
+    await createTask({
+      ...task,
+      id: uid(),
+      status: 'todo',
+      doneAt: undefined,
+      postponeCount: 0,
+      plan: undefined,
+      pinned: false,
+      deadline: task.deadline ? next : undefined,
+      scheduledDate: task.scheduledDate || !task.deadline ? next : undefined,
+      createdAt: Date.now(),
+    })
+  }
+  return true
+}
+
+/** Move to tomorrow, counting the postponement (anti-procrastination data) */
+export async function postpone(task: Task, days = 1) {
+  const from = task.scheduledDate && task.scheduledDate > dayKey() ? task.scheduledDate : dayKey()
+  const to = dayKey(addDays(parseISO(from), days))
+  await updateTask(task.id, {
+    scheduledDate: to,
+    postponeCount: (task.postponeCount || 0) + 1,
+    plan: task.plan?.map((b) => (b.date <= dayKey() ? { ...b, date: to } : b)),
+  })
+}
+
+export async function setStatus(task: Task, status: Task['status']) {
+  if (status === 'done') return toggleDone({ ...task, status: 'todo' })
+  await updateTask(task.id, { status, doneAt: undefined })
+}
