@@ -185,6 +185,17 @@ export async function signIn(email: string, password: string) {
   const sb = getClient()
   if (!sb) throw new Error('Chưa cấu hình Supabase')
   const { error } = await sb.auth.signInWithPassword({ email, password })
+  if (error) {
+    if (/email not confirmed/i.test(error.message)) throw new Error('EMAIL_NOT_CONFIRMED')
+    if (/invalid login credentials/i.test(error.message)) throw new Error('Sai email hoặc mật khẩu (hoặc chưa đăng ký).')
+    throw error
+  }
+}
+
+export async function resendConfirmation(email: string) {
+  const sb = getClient()
+  if (!sb) throw new Error('Chưa cấu hình Supabase')
+  const { error } = await sb.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } })
   if (error) throw error
 }
 

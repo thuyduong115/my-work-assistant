@@ -5,7 +5,7 @@ import { db } from '@/db/db'
 import { TABLES } from '@/db/types'
 import { PROVIDERS, listModels, aiBreakdown, pickGeminiModel } from '@/ai/ai'
 import { DEFAULT_MODELS, useSettings, type AIProvider, type Accent } from '@/stores/settings'
-import { initSync, signIn, signOut, signUp, syncNow, useSync } from '@/sync/sync'
+import { initSync, resendConfirmation, signIn, signOut, signUp, syncNow, useSync } from '@/sync/sync'
 import { SUPABASE_SQL } from '@/sync/schema'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
@@ -138,6 +138,7 @@ function SyncSection() {
   const [email, setEmail] = useState('')
   const [pw, setPw] = useState('')
   const [busy, setBusy] = useState(false)
+  const [unconfirmed, setUnconfirmed] = useState(false)
   const configured = !!supabase.url && !!supabase.anonKey
 
   const saveCfg = async () => {
@@ -154,7 +155,8 @@ function SyncSection() {
         toast.success(hasSession ? 'Đã tạo tài khoản' : 'Kiểm tra email để xác nhận tài khoản, rồi đăng nhập.')
       }
     } catch (e) {
-      toast.error((e as Error).message)
+      if ((e as Error).message === 'EMAIL_NOT_CONFIRMED') setUnconfirmed(true)
+      else toast.error((e as Error).message)
     } finally {
       setBusy(false)
     }
@@ -236,6 +238,34 @@ function SyncSection() {
               Đăng ký
             </Button>
           </form>
+        )}
+
+        {unconfirmed && !session && (
+          <div className="grid gap-2 rounded-xl border border-warning/50 bg-warning/10 p-4 text-sm">
+            <b>Email chưa được xác nhận</b>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Mở hộp thư <b>{email}</b> (xem cả mục Spam/Quảng cáo), tìm email từ Supabase và bấm <b>Confirm your mail</b>, rồi quay lại bấm Đăng nhập.
+              Nếu link mở ra trang lỗi/localhost: vào Supabase → <b>Authentication → URL Configuration</b>, đặt Site URL = <code>{location.origin + location.pathname}</code> rồi gửi lại.
+              Muốn bỏ bước này: Supabase → <b>Authentication → Sign In / Providers → Email</b> → tắt <b>Confirm email</b>.
+            </p>
+            <div>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={async () => {
+                  try {
+                    await resendConfirmation(email)
+                    toast.success('Đã gửi lại email xác nhận')
+                  } catch (e) {
+                    toast.error((e as Error).message)
+                  }
+                }}
+              >
+                Gửi lại email xác nhận
+              </Button>
+            </div>
+          </div>
         )}
 
         {session && (
