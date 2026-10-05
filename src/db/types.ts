@@ -102,8 +102,26 @@ export interface HabitLog extends Base {
   count: number
 }
 
-export type TableName = 'roles' | 'projects' | 'tasks' | 'timeEntries' | 'habits' | 'habitLogs'
-export const TABLES: TableName[] = ['roles', 'projects', 'tasks', 'timeEntries', 'habits', 'habitLogs']
+/** One per day: morning plan + evening review (id = "j-YYYY-MM-DD") */
+export interface Journal extends Base {
+  date: string
+  /** the day's 3 most important task ids */
+  top3?: string[]
+  /** 1 (drained) … 5 (full of energy) */
+  energy?: number
+  intention?: string
+  morningAt?: number
+  /** 1 (bad) … 5 (great) */
+  mood?: number
+  win?: string
+  note?: string
+  eveningAt?: number
+  /** times the focus guard caught you leaving the tab */
+  distractions?: number
+}
+
+export type TableName = 'roles' | 'projects' | 'tasks' | 'timeEntries' | 'habits' | 'habitLogs' | 'journal'
+export const TABLES: TableName[] = ['roles', 'projects', 'tasks', 'timeEntries', 'habits', 'habitLogs', 'journal']
 
 export const PRIORITY_LABEL: Record<Priority, string> = {
   low: 'Thấp',

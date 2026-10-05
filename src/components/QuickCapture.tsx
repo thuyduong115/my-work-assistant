@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Sparkles, Wand2, Trash2, Info } from 'lucide-react'
+import { Loader2, Sparkles, Wand2, Trash2, Info, Mail } from 'lucide-react'
 import { toast } from 'sonner'
 import { useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
 import { createTask } from '@/db/actions'
@@ -14,6 +14,7 @@ import { Dialog } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input, Label, Select, Textarea } from './ui/input'
 import { iconText } from './AppIcon'
+import { Segmented } from './ui/misc'
 
 const EXAMPLES = [
   'Chuẩn bị bảo vệ đồ án tốt nghiệp trước 20/12',
@@ -25,7 +26,8 @@ const EXAMPLES = [
 type Row = AITask & { _id: string; include: boolean }
 
 export function QuickCapture() {
-  const { captureOpen, capturePrefill, closeCapture } = useUI()
+  const { captureOpen, capturePrefill, captureMode, closeCapture } = useUI()
+  const [mode, setMode] = useState(captureMode)
   const projects = useProjects()
   const roles = useRoles()
   const tasks = useTasks() ?? []
@@ -43,10 +45,11 @@ export function QuickCapture() {
   useEffect(() => {
     if (captureOpen) {
       setText(capturePrefill ?? '')
+      setMode(captureMode)
       setResult(null)
       setRows([])
     }
-  }, [captureOpen, capturePrefill])
+  }, [captureOpen, capturePrefill, captureMode])
 
   const applyResult = (r: BreakdownResult) => {
     setResult(r)
@@ -66,7 +69,11 @@ export function QuickCapture() {
     if (!useAI) return applyResult(fallbackBreakdown(text))
     setBusy(true)
     try {
-      applyResult(await aiBreakdown(text, { projects: projects.filter((p) => p.status !== 'done').map((p) => p.name), roles: roles.map((r) => r.name), factor }))
+      const input =
+        mode === 'email'
+          ? `Đây là email / tin nhắn / biên bản họp tôi nhận được. Chỉ trích ra những việc TÔI cần làm (bỏ qua lời chào, chữ ký, thông tin không cần hành động). Giữ nguyên deadline, tên người và chi tiết quan trọng trong "notes". Nếu nhiều việc cùng một chủ đề thì gom vào 1 project.\n\n${text}`
+          : text
+      applyResult(await aiBreakdown(input, { projects: projects.filter((p) => p.status !== 'done').map((p) => p.name), roles: roles.map((r) => r.name), factor }))
     } catch (e) {
       toast.error((e as Error).message, { description: 'Đã dùng bộ tách offline thay thế.' })
       applyResult(fallbackBreakdown(text))
@@ -142,6 +149,14 @@ export function QuickCapture() {
     >
       {!result ? (
         <div className="grid gap-3">
+          <Segmented
+            value={mode}
+            onChange={setMode}
+            options={[
+              { value: 'plan', label: <><Sparkles /> Mô tả việc</> },
+              { value: 'email', label: <><Mail /> Dán email / tin nhắn</> },
+            ]}
+          />
           <Textarea
             autoFocus
             value={text}
@@ -149,8 +164,8 @@ export function QuickCapture() {
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) void analyze(ai.ready)
             }}
-            rows={5}
-            placeholder={'VD: Chuẩn bị bảo vệ đồ án trước 20/12, cần làm slide, viết báo cáo chương 4, tập thuyết trình\n\nMẹo offline: mỗi dòng 1 việc, "2h", "30p", "thứ 6", "mai", "20/12", "!" = quan trọng, #project'}
+            rows={mode === 'email' ? 10 : 5}
+            placeholder={mode === 'email' ? 'Dán nguyên văn email, tin nhắn Zalo/Messenger hoặc biên bản họp vào đây — AI sẽ lọc ra những việc bạn cần làm, kèm hạn chót.' : 'VD: Chuẩn bị bảo vệ đồ án trước 20/12, cần làm slide, viết báo cáo chương 4, tập thuyết trình\n\nMẹo offline: mỗi dòng 1 việc, "2h", "30p", "thứ 6", "mai", "20/12", "!" = quan trọng, #project'}
             className="text-[15px]"
           />
           {!ai.ready && (
@@ -161,13 +176,13 @@ export function QuickCapture() {
               </span>
             </div>
           )}
-          <div className="flex flex-wrap gap-1.5">
+          {mode === 'plan' && <div className="flex flex-wrap gap-1.5">
             {EXAMPLES.map((ex) => (
               <button key={ex} onClick={() => setText(ex)} className="rounded-full border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary hover:text-primary">
                 {ex}
               </button>
             ))}
-          </div>
+          </div>}
         </div>
       ) : (
         <div className="grid gap-3">

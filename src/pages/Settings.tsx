@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Bot, CalendarDays, Check, Cloud, Copy, Database, Download, ExternalLink, Keyboard, Loader2, LogOut, Monitor, Moon, Palette, RefreshCw, Smartphone, Sun, Timer, Upload, Clock, Trash2 } from 'lucide-react'
+import { Bell, Bot, CalendarDays, Check, Cloud, Copy, Database, Download, ExternalLink, Keyboard, Loader2, LogOut, Monitor, Moon, Palette, RefreshCw, Smartphone, Sun, Timer, Upload, Clock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { db } from '@/db/db'
 import { TABLES } from '@/db/types'
@@ -9,6 +9,7 @@ import { initSync, resendConfirmation, signIn, signOut, signUp, syncNow, useSync
 import { SUPABASE_SQL } from '@/sync/schema'
 import { cn } from '@/lib/utils'
 import { GcalSettings } from '@/gcal/GcalUI'
+import { showNotification } from '@/lib/reminders'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input, Label, Select, Textarea } from '@/components/ui/input'
@@ -357,6 +358,87 @@ if (typeof window !== 'undefined')
     deferred = e as BIPEvent
   })
 
+function RemindersSection() {
+  const s = useSettings()
+  const r = s.reminders
+  const g = s.focusGuard
+  const setR = (patch: Partial<typeof r>) => s.set({ reminders: { ...r, ...patch } })
+  const [perm, setPerm] = useState(() => ('Notification' in window ? Notification.permission : 'unsupported'))
+  const check = (label: string, value: boolean, onChange: (v: boolean) => void) => (
+    <label className="flex items-center gap-2 text-sm">
+      <input type="checkbox" checked={value} onChange={(e) => onChange(e.target.checked)} className="size-4 accent-[var(--primary)]" />
+      {label}
+    </label>
+  )
+  return (
+    <Section
+      id="reminders"
+      icon={<Bell />}
+      title="Nhắc nhở & nghi thức ngày"
+      desc="Nhắc khi app đang mở (kể cả tab chạy nền / app đã cài). Muốn nhắc cả khi đã tắt app: bật Google Calendar bên dưới — mỗi block làm task sẽ có nhắc 5 phút trước trên điện thoại."
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/60 p-3 text-sm">
+        <span>
+          Thông báo hệ thống:{' '}
+          <b className={perm === 'granted' ? 'text-success' : 'text-destructive'}>
+            {perm === 'granted' ? 'đã bật' : perm === 'denied' ? 'bị chặn (mở khoá ở biểu tượng 🔒 cạnh địa chỉ web)' : perm === 'unsupported' ? 'trình duyệt không hỗ trợ' : 'chưa bật'}
+          </b>
+        </span>
+        {perm === 'default' && (
+          <Button size="sm" onClick={() => void Notification.requestPermission().then(setPerm)}>
+            Bật thông báo
+          </Button>
+        )}
+        <Button size="sm" variant="outline" onClick={() => void showNotification('🔔 Thử thông báo', 'Nhắc việc đang hoạt động!', { force: true }).then((ok) => !ok && toast('🔔 Thử thông báo', { description: 'Thông báo hệ thống chưa bật — sẽ chỉ hiện trong app.' }))}>
+          Thử
+        </Button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid content-start gap-2.5">
+          {check('Nhắc trước giờ làm task', r.enabled, (enabled) => setR({ enabled }))}
+          <div className="flex items-center gap-2 pl-6 text-sm">
+            <span className="text-muted-foreground">Trước</span>
+            <Select value={r.beforeMin} onChange={(e) => setR({ beforeMin: +e.target.value })} className="h-8 w-32" disabled={!r.enabled}>
+              {[0, 5, 10, 15, 30].map((m) => (
+                <option key={m} value={m}>
+                  {m ? `${m} phút` : 'đúng giờ'}
+                </option>
+              ))}
+            </Select>
+          </div>
+          {check('Nhắc deadline (tóm tắt buổi sáng + 1 giờ trước hạn có giờ)', r.deadlines, (deadlines) => setR({ deadlines }))}
+          {check('Cảnh báo khi rời tab trong giờ tập trung', g.enabled, (enabled) => s.set({ focusGuard: { ...g, enabled } }))}
+          <div className="flex items-center gap-2 pl-6 text-sm">
+            <span className="text-muted-foreground">Cho phép rời</span>
+            <Select value={g.graceSec} onChange={(e) => s.set({ focusGuard: { ...g, graceSec: +e.target.value } })} className="h-8 w-32" disabled={!g.enabled}>
+              {[10, 30, 60, 120, 300].map((x) => (
+                <option key={x} value={x}>
+                  {x < 60 ? `${x} giây` : `${x / 60} phút`}
+                </option>
+              ))}
+            </Select>
+            <span className="text-muted-foreground">rồi mới nhắc</span>
+          </div>
+        </div>
+        <div className="grid content-start gap-2.5">
+          {check('Nghi thức sáng / tối (nhắc + banner ở trang Hôm nay)', r.rituals, (rituals) => setR({ rituals }))}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>☀️ Buổi sáng</Label>
+              <Input type="time" value={r.morning} onChange={(e) => e.target.value && setR({ morning: e.target.value })} />
+            </div>
+            <div>
+              <Label>🌙 Buổi tối</Label>
+              <Input type="time" value={r.evening} onChange={(e) => e.target.value && setR({ evening: e.target.value })} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Giờ sáng cũng là lúc gửi tóm tắt deadline trong ngày.</p>
+        </div>
+      </div>
+    </Section>
+  )
+}
+
 export default function Settings() {
   const s = useSettings()
   const [canInstall, setCanInstall] = useState(!!deferred)
@@ -454,6 +536,8 @@ export default function Settings() {
           )}
         </div>
       </Section>
+
+      <RemindersSection />
 
       <Section id="gcal" icon={<CalendarDays />} title="Google Calendar" desc="Hiện lịch Google trong app, tránh xếp task trùng giờ bận, và đẩy lịch làm task lên Google Calendar để nhận nhắc trên điện thoại.">
         <GcalSettings />

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { CloudRain, Coffee, PictureInPicture2, Timer as TimerIcon, Volume2, VolumeX, Waves, Hourglass, Bell } from 'lucide-react'
 import { toast } from 'sonner'
-import { useTasks, useTimeEntries } from '@/db/hooks'
+import { useJournal, useTasks, useTimeEntries } from '@/db/hooks'
 import { topTasks } from '@/lib/scheduler'
 import { playNoise, setNoiseVolume, stopNoise, type NoiseKind } from '@/lib/noise'
 import { dayKey, fmtClock, fmtMin } from '@/lib/utils'
@@ -93,9 +93,10 @@ export default function Focus() {
       </Card>
 
       <div className="grid content-start gap-5">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <Stat label="Hôm nay" value={fmtMin(focusToday)} />
           <Stat label="Phiên" value={todays.length} />
+          <Distractions />
         </div>
         <Card>
           <CardHeader title="Âm thanh nền" icon={<Volume2 />} />
@@ -147,4 +148,11 @@ export default function Focus() {
       </div>
     </div>
   )
+}
+
+function Distractions() {
+  const n = useJournal(dayKey())?.distractions ?? 0
+  const on = useSettings((s) => s.focusGuard.enabled)
+  if (!on) return null
+  return <Stat label="Xao nhãng" value={`${n} 👀`} sub={n ? 'lần rời tab khi tập trung' : 'chưa lần nào 💪'} />
 }

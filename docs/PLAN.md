@@ -211,7 +211,8 @@ my-work-assistant/
 - **Vai trò ban đầu:** Cá nhân.
 
 Đã làm: Phase 0–4 + phần lớn Phase 5 (review tuần AI, Eisenhower, recurring, ghi chú project, PiP mini window, âm thanh nền).
-Còn lại: templates, xuất .ics, nhắc deadline bằng thông báo đẩy.
+Đã thêm: chat trợ lý AI, "Bắt đầu 2 phút", nghi thức sáng/tối + nhật ký ngày, nhắc việc & deadline (khi app mở), cảnh báo rời tab khi tập trung, mẫu project, dán email/tin nhắn → task (cả từ menu Chia sẻ trên điện thoại), huy hiệu, phím tắt app (PWA shortcuts).
+Còn lại: mục tiêu dài hạn (OKR), ghi chú kiểu Notion cho task, xuất .ics, nhắc khi đã đóng app (cần máy chủ push).
 Đã loại bỏ (không cần): nhập bằng giọng nói, body doubling / phòng tập trung chung.
 
 ## 12. Câu hỏi ban đầu (lưu lại)

@@ -1,6 +1,6 @@
 import { addDays, addMonths, addWeeks, getDay, parseISO } from 'date-fns'
 import { db, put, remove, DEFAULT_ROLE_ID } from './db'
-import type { Recurrence, Task } from './types'
+import type { Journal, Recurrence, Task } from './types'
 import { dayKey, uid } from '@/lib/utils'
 
 export function newTask(partial: Partial<Task> = {}): Task {
@@ -117,3 +117,8 @@ export async function setStatus(task: Task, status: Task['status']) {
   }
   await updateTask(task.id, { status, doneAt: undefined })
 }
+
+export const journalId = (date: string) => `j-${date}`
+
+/** Patch the day's journal entry (created on first write) */
+export const saveJournal = (date: string, patch: Partial<Journal>) => put('journal', { id: journalId(date), date, ...patch })

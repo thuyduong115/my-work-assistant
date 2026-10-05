@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { CalendarClock, Clock, FolderKanban, Plus } from 'lucide-react'
+import { CalendarClock, Clock, FolderKanban, LayoutTemplate, Plus } from 'lucide-react'
+import { useUI } from '@/stores/ui'
 import { useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
 import type { Project } from '@/db/types'
 import { actualMinutes } from '@/lib/scheduler'
@@ -40,6 +41,9 @@ export default function Projects() {
                 { value: 'done', label: 'Xong' },
               ]}
             />
+            <Button variant="outline" onClick={() => useUI.getState().setTemplates(true)}>
+              <LayoutTemplate /> Từ mẫu
+            </Button>
             <Button onClick={() => setCreating(true)}>
               <Plus /> Project mới
             </Button>

@@ -4,8 +4,8 @@ import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, Flame, 
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { useHabitLogs, useHabits, useProjects, useTasks, useTimeEntries } from '@/db/hooks'
-import { createTask, postpone, updateTask } from '@/db/actions'
+import { useHabitLogs, useHabits, useJournal, useProjects, useTasks, useTimeEntries } from '@/db/hooks'
+import { createTask, postpone, saveJournal, updateTask } from '@/db/actions'
 import type { Task } from '@/db/types'
 import { aiConfig, aiDailyPlan } from '@/ai/ai'
 import { parseDate, parseDuration } from '@/ai/fallback'
@@ -25,6 +25,7 @@ import { Ring, TimerControls, useTimerView, PHASE_LABEL } from '@/components/Tim
 import { HabitsToday } from './Habits'
 import { GcalToday } from '@/gcal/GcalUI'
 import { AppIcon } from '@/components/AppIcon'
+import { ENERGY, RitualBanner } from '@/components/Ritual'
 
 function greeting() {
   const h = new Date().getHours()
@@ -104,7 +105,10 @@ function AITop3({ tasks }: { tasks: Task[] }) {
   })
   const [busy, setBusy] = useState(false)
   const openTask = useUI((s) => s.openTask)
+  const openRitual = useUI((s) => s.openRitual)
+  const journal = useJournal(dayKey())
   const open = tasks.filter((t) => t.status !== 'done')
+  const chosen = (journal?.top3 ?? []).map((id) => tasks.find((t) => t.id === id)).filter(Boolean) as Task[]
   const run = async () => {
     if (!aiConfig().ready) return toast.error('Cần API key AI', { description: 'Cài đặt → AI (Gemini miễn phí)' })
     setBusy(true)
@@ -123,6 +127,31 @@ function AITop3({ tasks }: { tasks: Task[] }) {
       setBusy(false)
     }
   }
+  if (chosen.length)
+    return (
+      <Card>
+        <CardHeader
+          title={`3 việc chính hôm nay (${chosen.filter((t) => t.status === 'done').length}/${chosen.length})`}
+          icon={<Target />}
+          action={
+            <Button size="sm" variant="ghost" onClick={() => openRitual('morning', 1)}>
+              Chọn lại
+            </Button>
+          }
+        />
+        <div className="px-2 pb-2">
+          {chosen.map((t) => (
+            <TaskItem key={t.id} task={t} compact />
+          ))}
+          {(journal?.intention || journal?.energy) && (
+            <p className="mx-2 mt-1 rounded-lg bg-primary-soft p-2.5 text-xs text-primary">
+              {journal.energy ? `${ENERGY[journal.energy - 1]} ` : ''}
+              {journal.intention}
+            </p>
+          )}
+        </div>
+      </Card>
+    )
   return (
     <Card>
       <CardHeader
@@ -150,9 +179,25 @@ function AITop3({ tasks }: { tasks: Task[] }) {
               )
             })}
             {data.message && <p className="rounded-lg bg-primary-soft p-2.5 text-xs text-primary">💬 {data.message}</p>}
+            <Button
+              size="sm"
+              variant="outline"
+              className="justify-self-start"
+              onClick={() => {
+                const ids = data.top3.map((x) => open.find((o) => o.title === x.title)?.id).filter(Boolean) as string[]
+                void saveJournal(dayKey(), { top3: ids })
+              }}
+            >
+              <Target /> Chốt làm 3 việc chính
+            </Button>
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">Để AI chọn 3 việc nên ưu tiên hôm nay dựa trên deadline, độ ưu tiên và số lần bạn đã dời.</p>
+          <div className="grid gap-2">
+            <p className="text-xs text-muted-foreground">Để AI chọn 3 việc nên ưu tiên hôm nay dựa trên deadline, độ ưu tiên và số lần bạn đã dời — hoặc tự chọn.</p>
+            <Button size="sm" variant="outline" className="justify-self-start" onClick={() => openRitual('morning', 1)}>
+              <Target /> Tự chọn 3 việc chính
+            </Button>
+          </div>
         )}
       </CardBody>
     </Card>
@@ -203,6 +248,8 @@ export default function Today() {
           <Sparkles /> Nhập việc — AI tách giúp
         </Button>
       </div>
+
+      <RitualBanner />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Hôm nay" value={`${doneCount}/${totalToday}`} sub={<Progress value={totalToday ? doneCount / totalToday : 0} className="mt-1.5 h-1.5" />} icon={<CheckCircle2 />} />

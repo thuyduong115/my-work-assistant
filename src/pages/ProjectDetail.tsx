@@ -5,7 +5,10 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { addDays, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { ArrowLeft, CalendarClock, Clock, Columns3, Flag, GanttChart, List, NotebookPen, Pencil, Plus, Sparkles, Timer } from 'lucide-react'
+import { ArrowLeft, CalendarClock, Clock, Columns3, Flag, GanttChart, List, LayoutTemplate, NotebookPen, Pencil, Plus, Sparkles, Timer } from 'lucide-react'
+import { toast } from 'sonner'
+import { templateFromProject } from '@/lib/templates'
+import { useSettings } from '@/stores/settings'
 import { useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
 import { createTask, setStatus, updateTask } from '@/db/actions'
 import { put } from '@/db/db'
@@ -227,6 +230,20 @@ export default function ProjectDetail() {
             {project.name}
             <Button size="icon-sm" variant="ghost" onClick={() => setEditing(true)} aria-label="Sửa project">
               <Pencil />
+            </Button>
+            <Button
+              size="icon-sm"
+              variant="ghost"
+              aria-label="Lưu làm mẫu"
+              title="Lưu làm mẫu"
+              onClick={() => {
+                const tpl = templateFromProject(project, all)
+                const s = useSettings.getState()
+                s.set({ templates: [tpl, ...s.templates.filter((t) => t.name !== tpl.name)] })
+                toast.success('Đã lưu làm mẫu', { description: `Projects → "Từ mẫu" để tạo lại bộ ${tpl.tasks.length} task này.` })
+              }}
+            >
+              <LayoutTemplate />
             </Button>
           </h1>
           <div className="mt-1 flex flex-wrap gap-1.5">

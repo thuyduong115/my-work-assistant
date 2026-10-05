@@ -18,6 +18,8 @@ import { Empty, PageHeader, Stat } from '@/components/ui/misc'
 import { TaskItem } from '@/components/TaskItem'
 import { Heatmap } from '@/components/Heatmap'
 import { C_A, C_B, ChartTooltip, axisProps, gridProps } from '@/components/charts'
+import { BadgesCard } from '@/components/Badges'
+import { JournalCard } from '@/components/Ritual'
 
 function Gauge({ score }: { score: number }) {
   const { label, color } = scoreLabel(score)
@@ -315,7 +317,12 @@ export default function Dashboard() {
         </CardBody>
       </Card>
 
-      <WeeklyReview />
+      <BadgesCard />
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <WeeklyReview />
+        <JournalCard />
+      </div>
     </div>
   )
 }

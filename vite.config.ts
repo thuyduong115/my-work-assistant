@@ -31,10 +31,18 @@ export default defineConfig({
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
           { src: 'pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
+        shortcuts: [
+          { name: 'Nhập việc nhanh', short_name: 'Nhập việc', url: '/my-work-assistant/?action=capture', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
+          { name: 'Bắt đầu ngày', short_name: 'Sáng', url: '/my-work-assistant/?action=morning', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
+          { name: 'Tổng kết ngày', short_name: 'Tối', url: '/my-work-assistant/?action=evening', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
+          { name: 'Tập trung', short_name: 'Tập trung', url: '/my-work-assistant/?action=focus', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
+        ],
+        share_target: { action: '/my-work-assistant/', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        importScripts: ['sw-notify.js'],
       },
     }),
   ],

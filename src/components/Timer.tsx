@@ -1,4 +1,9 @@
 import { useEffect, useMemo } from 'react'
+import { toast } from 'sonner'
+import { db } from '@/db/db'
+import { saveJournal } from '@/db/actions'
+import { showNotification } from '@/lib/reminders'
+import { useSettings } from '@/stores/settings'
 import { useNavigate } from 'react-router-dom'
 import { Check, Pause, Play, PictureInPicture2, SkipForward, Square, Timer as TimerIcon, Coffee } from 'lucide-react'
 import { useTasks } from '@/db/hooks'
@@ -33,11 +38,64 @@ export function useTimerEngine() {
     }, 1000)
     return () => clearInterval(id)
   }, [])
+  useFocusGuard()
   // tab title shows the clock
   const v = useTimerView()
   useEffect(() => {
     document.title = v.active ? `${fmtClock(v.display)} · ${PHASE_LABEL[v.phase]}` : 'My Work Assistant'
   }, [v.active, v.display, v.phase])
+}
+
+/** Number of focus-guard catches today (stored in the day's journal, so it syncs) */
+async function addDistraction(delta: number) {
+  const date = dayKey()
+  const j = await db.journal.get(`j-${date}`)
+  const n = Math.max(0, (j?.distractions ?? 0) + delta)
+  await saveJournal(date, { distractions: n })
+  return n
+}
+
+/**
+ * Focus guard: leaving the tab during a focus session triggers a nudge after a grace
+ * period, and counts as a distraction when you come back (undo if it was work).
+ */
+function useFocusGuard() {
+  useEffect(() => {
+    let leftAt = 0
+    let nudge: ReturnType<typeof setTimeout> | undefined
+    const focusing = () => {
+      const s = useTimer.getState()
+      return s.running && s.phase === 'focus'
+    }
+    const onVis = () => {
+      const g = useSettings.getState().focusGuard
+      if (!g.enabled) return
+      if (document.visibilityState === 'hidden') {
+        if (!focusing()) return
+        leftAt = Date.now()
+        nudge = setTimeout(() => {
+          if (focusing()) void showNotification('👀 Bạn đang trong giờ tập trung', 'Quay lại task nhé — còn chút nữa thôi!', { tag: 'focus-guard', target: { kind: 'focus' } })
+        }, g.graceSec * 1000)
+        return
+      }
+      clearTimeout(nudge)
+      const away = leftAt ? Date.now() - leftAt : 0
+      leftAt = 0
+      if (away < g.graceSec * 1000 || !focusing()) return
+      void addDistraction(1).then((n) =>
+        toast(`👋 Bạn vừa rời đi ${Math.round(away / 60000) || '<1'} phút`, {
+          description: `Lần xao nhãng thứ ${n} hôm nay. Tiếp tục nào!`,
+          duration: 8000,
+          action: { label: 'Đang làm việc', onClick: () => void addDistraction(-1) },
+        }),
+      )
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      clearTimeout(nudge)
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [])
 }
 
 export function TimerChip() {

@@ -1,9 +1,21 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import type { ProjectTemplate } from '@/lib/templates'
 
 export type Theme = 'light' | 'dark' | 'system'
 export type Accent = 'violet' | 'pink' | 'teal' | 'orange' | 'blue' | 'green'
 export type AIProvider = 'gemini' | 'groq' | 'openrouter' | 'none'
+
+export interface Reminders {
+  enabled: boolean
+  /** minutes before a planned block */
+  beforeMin: number
+  deadlines: boolean
+  /** morning plan / evening review prompts */
+  rituals: boolean
+  morning: string // HH:mm
+  evening: string // HH:mm
+}
 
 export interface Settings {
   theme: Theme
@@ -17,6 +29,11 @@ export interface Settings {
   supabase: { url: string; anonKey: string }
   pomodoro: { focus: number; short: number; long: number; longEvery: number; autoBreak: boolean; sound: boolean }
   dailyGoalMin: number
+  reminders: Reminders
+  /** warn when leaving the tab during a focus session */
+  focusGuard: { enabled: boolean; graceSec: number }
+  /** user-saved project templates (local to this device) */
+  templates: ProjectTemplate[]
   set: (patch: Partial<Omit<Settings, 'set'>>) => void
 }
 
@@ -48,6 +65,9 @@ export const useSettings = create<Settings>()(
       supabase: { url: import.meta.env.VITE_SUPABASE_URL ?? '', anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '' },
       pomodoro: { focus: 25, short: 5, long: 15, longEvery: 4, autoBreak: true, sound: true },
       dailyGoalMin: 120,
+      reminders: { enabled: true, beforeMin: 10, deadlines: true, rituals: true, morning: '07:30', evening: '21:30' },
+      focusGuard: { enabled: true, graceSec: 30 },
+      templates: [],
       set: (patch) => set(patch),
     }),
     {
