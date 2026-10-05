@@ -9,6 +9,7 @@ import { aiConfig, aiWeeklyReview } from '@/ai/ai'
 import { actualMinutes, calibrationFactor } from '@/lib/scheduler'
 import { activityByDay, bestStreak, focusByDay, isOverdue, procrastinationScore, scoreLabel, streak } from '@/lib/stats'
 import { dayKey, fmtMin } from '@/lib/utils'
+import { isHabitDone } from '@/lib/habits'
 import { useSettings } from '@/stores/settings'
 import { useUI } from '@/stores/ui'
 import { Card, CardBody, CardHeader } from '@/components/ui/card'
@@ -55,7 +56,7 @@ function WeeklyReview() {
       const focus = entries.filter((e) => e.start > since).reduce((s, e) => s + (e.end - e.start) / 60000, 0)
       const open = tasks.filter((t) => t.status !== 'done')
       const ps = procrastinationScore(tasks)
-      const habitRate = habits.map((h) => `${h.name}: ${logs.filter((l) => l.habitId === h.id && l.date >= dayKey(addDays(new Date(), -7)) && l.count >= h.target).length}/7`).join(', ')
+      const habitRate = habits.map((h) => `${h.name}: ${logs.filter((l) => l.habitId === h.id && l.date >= dayKey(addDays(new Date(), -7)) && l.count > 0 && isHabitDone(h, l.count)).length}/7`).join(', ')
       const summary = `Tuần qua:
 - Hoàn thành ${done.length} task: ${done.slice(0, 25).map((t) => t.title).join('; ')}
 - Thời gian tập trung: ${fmtMin(focus)}

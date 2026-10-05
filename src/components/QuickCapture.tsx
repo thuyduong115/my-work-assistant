@@ -13,6 +13,7 @@ import { useUI } from '@/stores/ui'
 import { Dialog } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input, Label, Select, Textarea } from './ui/input'
+import { iconText } from './AppIcon'
 
 const EXAMPLES = [
   'Chuẩn bị bảo vệ đồ án tốt nghiệp trước 20/12',
@@ -179,7 +180,7 @@ export function QuickCapture() {
                 <option value="new">+ Tạo project mới</option>
                 {projects.filter((p) => p.status !== 'done').map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.icon ?? '●'} {p.name}
+                    {iconText(p.icon)}{p.name}
                   </option>
                 ))}
               </Select>
@@ -195,7 +196,7 @@ export function QuickCapture() {
               <Select value={roleId} onChange={(e) => setRoleId(e.target.value)}>
                 {roles.map((r) => (
                   <option key={r.id} value={r.id}>
-                    {r.icon} {r.name}
+                    {iconText(r.icon)}{r.name}
                   </option>
                 ))}
               </Select>

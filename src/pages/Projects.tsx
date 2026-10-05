@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import { Empty, PageHeader, Progress, Segmented } from '@/components/ui/misc'
 import { ProjectDialog } from '@/components/ProjectDialog'
 import { deadlineInfo } from '@/components/TaskItem'
+import { AppIcon } from '@/components/AppIcon'
 
 export default function Projects() {
   const projects = useProjects()
@@ -64,14 +65,14 @@ export default function Projects() {
                 <Card className="relative h-full overflow-hidden p-5 transition group-hover:-translate-y-0.5 group-hover:shadow-lg">
                   <div className="absolute inset-x-0 top-0 h-1" style={{ background: p.color }} />
                   <div className="flex items-start gap-3">
-                    <span className="grid size-11 place-items-center rounded-xl text-2xl" style={{ background: `color-mix(in oklch, ${p.color} 16%, transparent)` }}>
-                      {p.icon ?? '📁'}
+                    <span className="grid size-11 place-items-center rounded-xl text-2xl" style={{ background: `color-mix(in oklch, ${p.color} 16%, transparent)`, color: p.color }}>
+                      <AppIcon value={p.icon ?? '📁'} size={24} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-semibold group-hover:text-primary">{p.name}</div>
                       {role && (
                         <div className="text-xs text-muted-foreground">
-                          {role.icon} {role.name}
+                          <AppIcon value={role.icon} size={12} /> {role.name}
                         </div>
                       )}
                     </div>

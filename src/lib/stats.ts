@@ -1,6 +1,7 @@
 import { addDays, differenceInCalendarDays, getDay } from 'date-fns'
 import type { Habit, HabitLog, Task, TimeEntry } from '@/db/types'
 import { dayKey, fromDayKey } from './utils'
+import { isHabitDone } from './habits'
 
 export function focusByDay(entries: TimeEntry[]) {
   const m = new Map<string, number>()
@@ -68,12 +69,15 @@ export function habitActiveOn(h: Habit, k: string) {
 
 /** Habit streak counts only the habit's scheduled weekdays */
 export function habitStreak(h: Habit, logs: HabitLog[], today = new Date()) {
-  const done = new Set(logs.filter((l) => l.habitId === h.id && l.count >= h.target).map((l) => l.date))
+  const vals = new Map(logs.filter((l) => l.habitId === h.id).map((l) => [l.date, l.count]))
+  const done = { has: (k: string) => isHabitDone(h, vals.get(k) ?? 0) }
+  const since = dayKey(new Date(h.createdAt))
   let cur = 0
   let d = today
-  if (!done.has(dayKey(d))) d = addDays(d, -1)
+  if (!done.has(dayKey(d)) || h.goal === 'atMost') d = addDays(d, -1) // an "at most" day only counts once it's over
   for (let i = 0; i < 400; i++) {
     const k = dayKey(d)
+    if (k < since) break
     if (habitActiveOn(h, k)) {
       if (!done.has(k)) break
       cur++
@@ -87,7 +91,7 @@ export function xpTotal(tasks: Task[], entries: TimeEntry[], logs: HabitLog[]) {
   let xp = 0
   for (const t of tasks) if (t.status === 'done') xp += 10 + Math.round(t.estimateMin / 30) * 5
   for (const e of entries) if (e.kind === 'pomodoro') xp += 5
-  for (const l of logs) xp += 3 * Math.min(l.count, 5)
+  for (const l of logs) xp += l.count > 0 ? 3 : 0
   return xp
 }
 

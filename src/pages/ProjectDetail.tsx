@@ -21,6 +21,7 @@ import { Input, Textarea } from '@/components/ui/input'
 import { Progress, Segmented, Stat } from '@/components/ui/misc'
 import { ProjectDialog } from '@/components/ProjectDialog'
 import { TaskItem, deadlineInfo } from '@/components/TaskItem'
+import { AppIcon } from '@/components/AppIcon'
 
 type View = 'board' | 'list' | 'timeline' | 'notes'
 const COLS: { id: TaskStatus; color: string }[] = [
@@ -218,8 +219,8 @@ export default function ProjectDetail() {
         <ArrowLeft className="size-3.5" /> Projects
       </button>
       <div className="mb-5 flex flex-wrap items-start gap-4">
-        <span className="grid size-14 place-items-center rounded-2xl text-3xl" style={{ background: `color-mix(in oklch, ${project.color} 16%, transparent)` }}>
-          {project.icon ?? '📁'}
+        <span className="grid size-14 place-items-center rounded-2xl text-3xl" style={{ background: `color-mix(in oklch, ${project.color} 16%, transparent)`, color: project.color }}>
+          <AppIcon value={project.icon ?? '📁'} size={30} />
         </span>
         <div className="min-w-0 flex-1">
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
@@ -229,7 +230,7 @@ export default function ProjectDetail() {
             </Button>
           </h1>
           <div className="mt-1 flex flex-wrap gap-1.5">
-            {role && <Badge color={role.color}>{role.icon} {role.name}</Badge>}
+            {role && <Badge color={role.color}><AppIcon value={role.icon} size={12} /> {role.name}</Badge>}
             {dl && (
               <Badge color={dl.color}>
                 <CalendarClock /> {dl.label}

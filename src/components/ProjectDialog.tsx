@@ -7,8 +7,9 @@ import { COLORS, cn, uid } from '@/lib/utils'
 import { Dialog } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input, Label, Select, Textarea } from './ui/input'
+import { IconPicker } from './IconPicker'
+import { iconText } from './AppIcon'
 
-const ICONS = ['📁', '🎓', '💼', '🔬', '💻', '📝', '🏠', '💪', '✈️', '💰', '🎨', '📈', '🧠', '❤️', '🌱', '🚀']
 
 export function ProjectDialog({ project, onClose, defaultRoleId }: { project?: Project; onClose: (id?: string) => void; defaultRoleId?: string }) {
   const roles = useRoles()
@@ -59,14 +60,8 @@ export function ProjectDialog({ project, onClose, defaultRoleId }: { project?: P
         </div>
         <div>
           <Label>Biểu tượng & màu</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {ICONS.map((e) => (
-              <button key={e} onClick={() => setF({ ...f, icon: e })} className={cn('grid size-9 place-items-center rounded-lg border text-lg', f.icon === e && 'border-primary bg-primary-soft')}>
-                {e}
-              </button>
-            ))}
-          </div>
-          <div className="mt-2 flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <IconPicker value={f.icon} color={f.color} onChange={(icon) => setF({ ...f, icon })} />
             {COLORS.map((c) => (
               <button key={c} onClick={() => setF({ ...f, color: c })} className={cn('size-7 rounded-full ring-offset-2 ring-offset-card', f.color === c && 'ring-2')} style={{ background: c, ['--tw-ring-color' as string]: c }} aria-label={c} />
             ))}
@@ -78,7 +73,7 @@ export function ProjectDialog({ project, onClose, defaultRoleId }: { project?: P
             <Select value={f.roleId ?? ''} onChange={(e) => setF({ ...f, roleId: e.target.value })}>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.icon} {r.name}
+                  {iconText(r.icon)}{r.name}
                 </option>
               ))}
             </Select>

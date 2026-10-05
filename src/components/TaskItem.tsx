@@ -12,6 +12,7 @@ import { CheckCircle } from './ui/misc'
 import { Dropdown, DropdownItem, DropdownSeparator } from './ui/dropdown'
 import { Button } from './ui/button'
 import { toast } from 'sonner'
+import { AppIcon } from './AppIcon'
 
 export function deadlineInfo(t: Task) {
   if (!t.deadline) return null
@@ -79,7 +80,7 @@ export function TaskItem({
           </Badge>
           {showProject && project && (
             <Badge color={project.color}>
-              {project.icon ?? '●'} {project.name}
+              <AppIcon value={project.icon} size={11} /> {project.name}
             </Badge>
           )}
           {subCount && subCount.total > 0 && (

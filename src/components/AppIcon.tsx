@@ -21,11 +21,11 @@ export function iconText(v?: string) {
   return v && !isSvgIcon(v) ? v + ' ' : ''
 }
 
-export function AppIcon({ value, size = 18, className, fallback = '•' }: { value?: string; size?: number; className?: string; fallback?: string }) {
-  if (!value) return <span className={className}>{fallback}</span>
+export function AppIcon({ value, size = 18, className, style, fallback = '•' }: { value?: string; size?: number; className?: string; style?: React.CSSProperties; fallback?: string }) {
+  if (!value) return <span className={className} style={style}>{fallback}</span>
   if (!isSvgIcon(value))
     return (
-      <span className={cn('inline-block leading-none', className)} style={{ fontSize: size * 0.95 }}>
+      <span className={cn('inline-block leading-none', className)} style={{ fontSize: size * 0.95, ...style }}>
         {value}
       </span>
     )
@@ -38,6 +38,7 @@ export function AppIcon({ value, size = 18, className, fallback = '•' }: { val
       fill="currentColor"
       aria-hidden
       className={cn('inline-block shrink-0', className)}
+      style={style}
       dangerouslySetInnerHTML={{ __html: body }}
     />
   )

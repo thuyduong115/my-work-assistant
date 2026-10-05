@@ -72,12 +72,23 @@ export interface TimeEntry extends Base {
   kind: 'pomodoro' | 'stopwatch'
 }
 
+export type HabitKind = 'check' | 'count' | 'amount' | 'duration'
+
 export interface Habit extends Base {
   name: string
   icon: string
   color: string
-  /** times per day */
+  /** check = tick once · count = times · amount = quantity with a unit · duration = minutes */
+  kind?: HabitKind
+  /** daily goal (times / quantity / minutes) */
   target: number
+  unit?: string
+  /** added per tap */
+  step?: number
+  /** extra quick-add buttons */
+  quick?: number[]
+  /** atLeast = reach the goal (water) · atMost = stay under it (coffee, social media) */
+  goal?: 'atLeast' | 'atMost'
   /** active weekdays, 0 = Sunday */
   days: number[]
   archived?: boolean

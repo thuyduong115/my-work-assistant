@@ -14,8 +14,9 @@ import { Dialog } from '@/components/ui/dialog'
 import { Input, Label, Textarea } from '@/components/ui/input'
 import { PageHeader, Progress } from '@/components/ui/misc'
 import { TaskItem } from '@/components/TaskItem'
+import { IconPicker } from '@/components/IconPicker'
+import { AppIcon } from '@/components/AppIcon'
 
-const ICONS = ['🌸', '🎓', '💼', '🔬', '💻', '👩‍👧', '🏃', '🎨', '🤝', '📣', '🧑‍🏫', '🏠', '💰', '✍️', '🎯', '🌍']
 
 function RoleDialog({ role, onClose }: { role?: Role; onClose: () => void }) {
   const [f, setF] = useState({ name: role?.name ?? '', icon: role?.icon ?? '🎯', color: role?.color ?? COLORS[Math.floor(Math.random() * COLORS.length)], description: role?.description ?? '' })
@@ -58,14 +59,8 @@ function RoleDialog({ role, onClose }: { role?: Role; onClose: () => void }) {
         </div>
         <div>
           <Label>Biểu tượng & màu</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {ICONS.map((e) => (
-              <button key={e} onClick={() => setF({ ...f, icon: e })} className={cn('grid size-9 place-items-center rounded-lg border text-lg', f.icon === e && 'border-primary bg-primary-soft')}>
-                {e}
-              </button>
-            ))}
-          </div>
-          <div className="mt-2 flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <IconPicker value={f.icon} color={f.color} onChange={(icon) => setF({ ...f, icon })} />
             {COLORS.map((c) => (
               <button key={c} onClick={() => setF({ ...f, color: c })} className={cn('size-7 rounded-full ring-offset-2 ring-offset-card', f.color === c && 'ring-2')} style={{ background: c, ['--tw-ring-color' as string]: c }} aria-label={c} />
             ))}
@@ -140,8 +135,8 @@ export default function Roles() {
               className={cn('cursor-pointer p-5 transition hover:shadow-md', selected === d.role.id && 'ring-2 ring-primary')}
             >
               <div className="flex items-start gap-3">
-                <span className="grid size-12 place-items-center rounded-2xl text-2xl" style={{ background: `color-mix(in oklch, ${d.role.color} 16%, transparent)` }}>
-                  {d.role.icon}
+                <span className="grid size-12 place-items-center rounded-2xl text-2xl" style={{ background: `color-mix(in oklch, ${d.role.color} 16%, transparent)`, color: d.role.color }}>
+                  <AppIcon value={d.role.icon} size={26} />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold">{d.role.name}</div>
@@ -181,7 +176,7 @@ export default function Roles() {
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   {d.projects.slice(0, 5).map((p) => (
                     <Link key={p.id} to={`/projects/${p.id}`} onClick={(e) => e.stopPropagation()} className="rounded-md px-2 py-0.5 text-[11px] font-medium" style={{ background: `color-mix(in oklch, ${p.color} 16%, transparent)`, color: p.color }}>
-                      {p.icon} {p.name}
+                      <AppIcon value={p.icon} size={12} /> {p.name}
                     </Link>
                   ))}
                 </div>
@@ -223,7 +218,7 @@ export default function Roles() {
           </Card>
           {sel && (
             <Card>
-              <CardHeader title={`${sel.role.icon} ${sel.role.name}: việc sắp tới`} />
+              <CardHeader title={<><AppIcon value={sel.role.icon} size={16} /> {sel.role.name}: việc sắp tới</>} />
               <div className="px-2 pb-2">
                 {sel.next.length ? sel.next.map((t) => <TaskItem key={t.id} task={t} compact />) : <p className="px-3 pb-3 text-xs text-muted-foreground">Không có deadline sắp tới.</p>}
                 {sel.open.filter((t) => !t.deadline).length > 0 && <p className="px-3 pb-2 text-xs text-muted-foreground">+ {sel.open.filter((t) => !t.deadline).length} việc không có deadline</p>}

@@ -24,6 +24,7 @@ import { TaskItem } from '@/components/TaskItem'
 import { Ring, TimerControls, useTimerView, PHASE_LABEL } from '@/components/Timer'
 import { HabitsToday } from './Habits'
 import { GcalToday } from '@/gcal/GcalUI'
+import { AppIcon } from '@/components/AppIcon'
 
 function greeting() {
   const h = new Date().getHours()
@@ -339,7 +340,8 @@ function ProjectsMini() {
             <Link key={p.id} to={`/projects/${p.id}`} className="group">
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="truncate font-medium group-hover:text-primary">
-                  {p.icon} {p.name}
+                  <AppIcon value={p.icon} size={14} className="mr-1 align-[-2px]" style={{ color: p.color }} />
+                  {p.name}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {done}/{ts.length}

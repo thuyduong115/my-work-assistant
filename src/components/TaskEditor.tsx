@@ -15,6 +15,7 @@ import { Dialog } from './ui/dialog'
 import { Button } from './ui/button'
 import { Input, Label, Select, Textarea } from './ui/input'
 import { CheckCircle } from './ui/misc'
+import { iconText } from './AppIcon'
 
 type Form = Pick<
   Task,
@@ -168,7 +169,7 @@ export function TaskEditor() {
               <option value="">— Không —</option>
               {projects.filter((p) => p.status !== 'done' || p.id === form.projectId).map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.icon ?? '●'} {p.name}
+                  {iconText(p.icon)}{p.name}
                 </option>
               ))}
             </Select>
@@ -179,7 +180,7 @@ export function TaskEditor() {
               <option value="">— Không —</option>
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
-                  {r.icon} {r.name}
+                  {iconText(r.icon)}{r.name}
                 </option>
               ))}
             </Select>
