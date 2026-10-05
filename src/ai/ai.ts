@@ -86,7 +86,9 @@ async function geminiRequest(key: string, model: string, system: string, user: s
   // wrong endpoint for this key type → try the other one
   if ([400, 401, 403, 404].includes(res.status)) {
     const alt = await order[1]().catch(() => null)
-    if (alt && (alt.ok || alt.status === 429)) res = alt
+    // ok/429 → this endpoint accepts the key; 404 beats 401/403 because it means
+    // the key was accepted and only the model is missing (we can auto-fix that)
+    if (alt && (alt.ok || alt.status === 429 || (alt.status === 404 && res.status !== 404))) res = alt
   }
   return res
 }
