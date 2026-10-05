@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { Toaster } from 'sonner'
@@ -16,16 +16,16 @@ import { syncNow } from '@/sync/sync'
 import { syncGcal } from '@/gcal/gcal'
 import Today from '@/pages/Today'
 
-const Inbox = lazy(() => import('@/pages/Inbox'))
-const Calendar = lazy(() => import('@/pages/Calendar'))
-const Projects = lazy(() => import('@/pages/Projects'))
-const ProjectDetail = lazy(() => import('@/pages/ProjectDetail'))
-const Roles = lazy(() => import('@/pages/Roles'))
-const Dashboard = lazy(() => import('@/pages/Dashboard'))
+import Inbox from '@/pages/Inbox'
+import Calendar from '@/pages/Calendar'
+import Projects from '@/pages/Projects'
+import ProjectDetail from '@/pages/ProjectDetail'
+import Roles from '@/pages/Roles'
+import Dashboard from '@/pages/Dashboard'
 import Habits from '@/pages/Habits'
-const Focus = lazy(() => import('@/pages/Focus'))
-const Matrix = lazy(() => import('@/pages/Matrix'))
-const Settings = lazy(() => import('@/pages/Settings'))
+import Focus from '@/pages/Focus'
+import Matrix from '@/pages/Matrix'
+import Settings from '@/pages/Settings'
 
 function ScrollTop() {
   const { pathname } = useLocation()
@@ -132,6 +132,9 @@ function Main() {
     </>
   )
 }
+
+// Pages are bundled eagerly: navigating never fetches files, so a tab left open
+// across deploys can't break when old page chunks disappear from the server.
 
 /** Fallback popup window (#/mini) for browsers without Document PiP */
 function MiniOnly() {
