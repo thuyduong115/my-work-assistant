@@ -9,7 +9,7 @@ export const PROVIDERS: Record<Exclude<AIProvider, 'none'>, { name: string; keyU
     name: 'Google Gemini (free)',
     keyUrl: 'https://aistudio.google.com/apikey',
     base: 'https://generativelanguage.googleapis.com/v1beta',
-    hint: 'Đăng nhập Google → Google AI Studio → "Create API key". Gói miễn phí đủ dùng cá nhân.',
+    hint: 'Đăng nhập Google → Google AI Studio → "Create API key" (key dạng AIza…). Key Vertex AI (dạng AQ.…) cũng dùng được. Gói miễn phí đủ dùng cá nhân.',
   },
   groq: {
     name: 'Groq (free, rất nhanh)',
@@ -47,20 +47,71 @@ function extractJSON(text: string): unknown {
   }
 }
 
+const VERTEX_BASE = 'https://aiplatform.googleapis.com/v1/publishers/google/models'
+/** Keys starting with "AQ." are Vertex AI express-mode keys (Google Cloud), not AI Studio keys */
+export const isVertexKey = (key: string) => key.startsWith('AQ.')
+const GEMINI_FALLBACK_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-2.0-flash-001', 'gemini-2.0-flash-lite-001']
+
+/** Best default when the configured model is gone: a stable flash, else anything */
+export function pickGeminiModel(models: string[], exclude?: string) {
+  const ok = models.filter((m) => m !== exclude)
+  return (
+    ok.find((m) => /flash(?!.*lite)/.test(m) && !/preview|exp|latest/.test(m)) ??
+    ok.find((m) => /flash/.test(m) && !/preview|exp/.test(m)) ??
+    ok.find((m) => /flash/.test(m)) ??
+    ok[0]
+  )
+}
+
+async function errorMessage(res: Response) {
+  try {
+    const j = await res.json()
+    return (j?.error?.message as string) ?? JSON.stringify(j).slice(0, 200)
+  } catch {
+    return `HTTP ${res.status}`
+  }
+}
+
+async function geminiRequest(key: string, model: string, system: string, user: string, json: boolean) {
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: system }] },
+    contents: [{ role: 'user', parts: [{ text: user }] }],
+    generationConfig: { temperature: 0.4, ...(json ? { responseMimeType: 'application/json' } : {}) },
+  })
+  const headers = { 'Content-Type': 'application/json' }
+  const aiStudio = () => fetch(`${PROVIDERS.gemini.base}/models/${model}:generateContent`, { method: 'POST', headers: { ...headers, 'x-goog-api-key': key }, body })
+  const vertex = () => fetch(`${VERTEX_BASE}/${model}:generateContent?key=${encodeURIComponent(key)}`, { method: 'POST', headers, body })
+  const order = isVertexKey(key) ? [vertex, aiStudio] : [aiStudio, vertex]
+  let res = await order[0]()
+  // wrong endpoint for this key type → try the other one
+  if ([400, 401, 403, 404].includes(res.status)) {
+    const alt = await order[1]().catch(() => null)
+    if (alt && (alt.ok || alt.status === 429)) res = alt
+  }
+  return res
+}
+
 async function call(system: string, user: string, json = true): Promise<string> {
   const { provider, key, model, ready } = aiConfig()
   if (!ready) throw new AIError('Chưa cấu hình AI. Vào Cài đặt → AI để dán API key miễn phí.')
   let res: Response
+  let usedModel = model
   if (provider === 'gemini') {
-    res = await fetch(`${PROVIDERS.gemini.base}/models/${model}:generateContent`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: system }] },
-        contents: [{ role: 'user', parts: [{ text: user }] }],
-        generationConfig: { temperature: 0.4, ...(json ? { responseMimeType: 'application/json' } : {}) },
-      }),
-    })
+    res = await geminiRequest(key, model, system, user, json)
+    if (res.status === 404) {
+      // model retired/renamed → pick a working one automatically and remember it
+      const models = await listModels('gemini', key).catch(() => GEMINI_FALLBACK_MODELS)
+      const pick = pickGeminiModel(models, model)
+      if (pick) {
+        const retry = await geminiRequest(key, pick, system, user, json)
+        if (retry.ok) {
+          const s = useSettings.getState()
+          s.set({ ai: { ...s.ai, model: { ...s.ai.model, gemini: pick } } })
+          usedModel = pick
+        }
+        res = retry
+      }
+    }
   } else {
     const p = PROVIDERS[provider as 'groq' | 'openrouter']
     res = await fetch(`${p.base}/chat/completions`, {
@@ -82,17 +133,11 @@ async function call(system: string, user: string, json = true): Promise<string> 
     })
   }
   if (!res.ok) {
-    let msg = `${res.status}`
-    try {
-      const j = await res.json()
-      msg = j?.error?.message ?? JSON.stringify(j).slice(0, 200)
-    } catch {
-      /* ignore */
-    }
-    if (res.status === 429) throw new AIError('Hết lượt miễn phí tạm thời (429). Đợi 1 phút rồi thử lại.')
-    if (res.status === 401 || res.status === 403) throw new AIError('API key không hợp lệ: ' + msg)
-    if (res.status === 404) throw new AIError(`Model "${model}" không tồn tại. Vào Cài đặt → AI → "Tải danh sách model".`)
-    throw new AIError('Lỗi AI: ' + msg)
+    const msg = await errorMessage(res)
+    if (res.status === 429) throw new AIError('Hết lượt miễn phí tạm thời (429). Đợi 1 phút rồi thử lại. ' + msg)
+    if (res.status === 401 || res.status === 403) throw new AIError(`API key bị từ chối (${res.status}): ${msg}`)
+    if (res.status === 404) throw new AIError(`Không tìm thấy model "${usedModel}" (404): ${msg}`)
+    throw new AIError(`Lỗi AI (${res.status}): ${msg}`)
   }
   const j = await res.json()
   if (provider === 'gemini') {
@@ -106,8 +151,12 @@ async function call(system: string, user: string, json = true): Promise<string> 
 
 export async function listModels(provider: Exclude<AIProvider, 'none'>, key: string): Promise<string[]> {
   if (provider === 'gemini') {
-    const r = await fetch(`${PROVIDERS.gemini.base}/models?pageSize=200`, { headers: { 'x-goog-api-key': key } })
-    if (!r.ok) throw new AIError('Không tải được model — kiểm tra API key.')
+    const r = await fetch(`${PROVIDERS.gemini.base}/models?pageSize=200`, { headers: { 'x-goog-api-key': key } }).catch(() => null)
+    if (!r?.ok) {
+      // Vertex express keys can't list models — offer the known stable ones
+      if (isVertexKey(key)) return GEMINI_FALLBACK_MODELS
+      throw new AIError('Không tải được model: ' + (r ? await errorMessage(r) : 'lỗi mạng'))
+    }
     const j = await r.json()
     return (j.models ?? [])
       .filter((m: { supportedGenerationMethods?: string[] }) => m.supportedGenerationMethods?.includes('generateContent'))
@@ -116,7 +165,7 @@ export async function listModels(provider: Exclude<AIProvider, 'none'>, key: str
   }
   const p = PROVIDERS[provider]
   const r = await fetch(`${p.base}/models`, { headers: { Authorization: `Bearer ${key}` } })
-  if (!r.ok) throw new AIError('Không tải được model — kiểm tra API key.')
+  if (!r.ok) throw new AIError('Không tải được model: ' + (await errorMessage(r)))
   const j = await r.json()
   let ids: string[] = (j.data ?? []).map((m: { id: string }) => m.id)
   if (provider === 'openrouter') ids = ids.filter((i) => i.endsWith(':free'))

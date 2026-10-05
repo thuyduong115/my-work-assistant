@@ -3,7 +3,7 @@ import { Bot, Check, Cloud, Copy, Database, Download, ExternalLink, Keyboard, Lo
 import { toast } from 'sonner'
 import { db } from '@/db/db'
 import { TABLES } from '@/db/types'
-import { PROVIDERS, listModels, aiBreakdown } from '@/ai/ai'
+import { PROVIDERS, listModels, aiBreakdown, pickGeminiModel } from '@/ai/ai'
 import { DEFAULT_MODELS, useSettings, type AIProvider, type Accent } from '@/stores/settings'
 import { initSync, signIn, signOut, signUp, syncNow, useSync } from '@/sync/sync'
 import { SUPABASE_SQL } from '@/sync/schema'
@@ -46,7 +46,7 @@ function AISection() {
       const ms = await listModels(p, key)
       setModels(ms)
       if (!ms.includes(model)) {
-        const pick = ms.find((m) => /flash(?!.*lite)/.test(m) && !/preview|exp/.test(m)) ?? ms.find((m) => /flash/.test(m)) ?? ms[0]
+        const pick = p === 'gemini' ? pickGeminiModel(ms) : ms[0]
         if (pick) setAI({ model: { ...ai.model, [p]: pick } })
       }
       toast.success(`Tải được ${ms.length} model`)
@@ -60,7 +60,8 @@ function AISection() {
     setBusy(true)
     try {
       const r = await aiBreakdown('Mua sữa mai và học tiếng Anh 30 phút', { projects: [], roles: ['Cá nhân'], factor: 1 })
-      toast.success('AI hoạt động! ✅', { description: r.tasks.map((t) => t.title).join(' · ') })
+      const m = useSettings.getState().ai.model[p as Exclude<AIProvider, 'none'>] || DEFAULT_MODELS[p]
+      toast.success(`AI hoạt động! ✅ (${m})`, { description: r.tasks.map((t) => t.title).join(' · ') })
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
