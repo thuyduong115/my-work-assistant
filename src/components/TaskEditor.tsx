@@ -92,7 +92,7 @@ export function TaskEditor() {
       } else {
         // changing the date/estimate un-pins auto plan
         const replan = clean.estimateMin !== task.estimateMin || clean.deadline !== task.deadline || clean.scheduledDate !== task.scheduledDate || clean.scheduledTime !== task.scheduledTime
-        await updateTask(task.id, { ...clean, ...(replan ? { pinned: false } : {}), doneAt: clean.status === 'done' ? task.doneAt : undefined })
+        await updateTask(task.id, { ...clean, ...(replan ? { pinned: false } : {}), ...(clean.priority !== task.priority || clean.deadline !== task.deadline ? { matrix: undefined } : {}), doneAt: clean.status === 'done' ? task.doneAt : undefined })
       }
     } else {
       await createTask({ ...(newTask ?? {}), ...clean })

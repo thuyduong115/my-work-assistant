@@ -56,6 +56,8 @@ export interface Task extends Base {
   pinned?: boolean
   energy?: Energy
   recurrence?: Recurrence
+  /** Eisenhower quadrant chosen by hand (overrides the deadline-based guess) */
+  matrix?: 'do' | 'plan' | 'delegate' | 'drop'
   postponeCount: number
   /** last planned day that was skipped (already counted) */
   lastMissed?: string
