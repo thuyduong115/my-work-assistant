@@ -201,6 +201,7 @@ interface ApiEvent {
   start: { dateTime?: string; date?: string }
   end: { dateTime?: string; date?: string }
   transparency?: string
+  colorId?: string
   extendedProperties?: { private?: Record<string, string> }
 }
 
@@ -275,8 +276,9 @@ async function pushPlan() {
   for (const [key, e] of have) {
     const w = want.get(key)
     if (!w) await api(`/calendars/${cal}/events/${e.id}`, { method: 'DELETE' })
-    else if (e.summary !== w.title || new Date(e.end.dateTime ?? 0).toISOString() !== w.end)
-      await api(`/calendars/${cal}/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ summary: w.title, end: { dateTime: w.end } }) })
+    // colorId: null resets events made by older versions (purple) to the calendar's own color
+    else if (e.summary !== w.title || new Date(e.end.dateTime ?? 0).toISOString() !== w.end || e.colorId)
+      await api(`/calendars/${cal}/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ summary: w.title, end: { dateTime: w.end }, colorId: null }) })
   }
   for (const [key, w] of want) {
     if (have.has(key)) continue
@@ -287,7 +289,6 @@ async function pushPlan() {
         description: 'Tạo bởi My Work Assistant — https://thuyduong115.github.io/my-work-assistant/',
         start: { dateTime: w.start },
         end: { dateTime: w.end },
-        colorId: '3',
         reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 5 }] },
         extendedProperties: { private: { mwa: '1', key, taskId: w.taskId } },
       }),
