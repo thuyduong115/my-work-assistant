@@ -275,10 +275,13 @@ async function pushPlan() {
 
   for (const [key, e] of have) {
     const w = want.get(key)
-    if (!w) await api(`/calendars/${cal}/events/${e.id}`, { method: 'DELETE' })
-    // colorId: null resets events made by older versions (purple) to the calendar's own color
-    else if (e.summary !== w.title || new Date(e.end.dateTime ?? 0).toISOString() !== w.end || e.colorId)
-      await api(`/calendars/${cal}/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ summary: w.title, end: { dateTime: w.end }, colorId: null }) })
+    // events from older versions carry a fixed purple color: recreate them so they
+    // follow the calendar's own color (a PATCH can't reliably clear colorId)
+    if (!w || e.colorId) {
+      await api(`/calendars/${cal}/events/${e.id}`, { method: 'DELETE' })
+      have.delete(key)
+    } else if (e.summary !== w.title || new Date(e.end.dateTime ?? 0).toISOString() !== w.end)
+      await api(`/calendars/${cal}/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ summary: w.title, end: { dateTime: w.end } }) })
   }
   for (const [key, w] of want) {
     if (have.has(key)) continue
