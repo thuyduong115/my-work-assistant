@@ -356,7 +356,9 @@ function Evening({ step, setStep, done }: { step: number; setStep: (n: number) =
 export function RitualDialog() {
   const { ritual, ritualStep, openRitual } = useUI()
   const [step, setStep] = useState(0)
-  useEffect(() => setStep(ritualStep ?? 0), [ritual, ritualStep])
+  useEffect(() => {
+    setStep(ritualStep ?? 0)
+  }, [ritual, ritualStep])
   const close = () => openRitual(undefined)
   return (
     <Dialog

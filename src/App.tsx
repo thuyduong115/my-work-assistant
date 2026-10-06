@@ -35,7 +35,10 @@ import Settings from '@/pages/Settings'
 
 function ScrollTop() {
   const { pathname } = useLocation()
-  useEffect(() => window.scrollTo(0, 0), [pathname])
+  // block body: extensions that patch scrollTo may return a value, which React would call as cleanup
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
   return null
 }
 
@@ -152,7 +155,9 @@ function Main() {
 /** Fallback popup window (#/mini) for browsers without Document PiP */
 function MiniOnly() {
   const { theme, accent } = useSettings()
-  useEffect(() => applyTheme(theme, accent), [theme, accent])
+  useEffect(() => {
+    applyTheme(theme, accent)
+  }, [theme, accent])
   return <MiniTimer />
 }
 

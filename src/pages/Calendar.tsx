@@ -528,7 +528,13 @@ export default function Calendar() {
   const [view, setView] = useState<View>(() => (localStorage.getItem('mwa-cal-view') as View) || (innerWidth < 768 ? 'day' : 'week'))
   const [cursor, setCursor] = useState(new Date())
   const [busy, setBusy] = useState(false)
-  useEffect(() => localStorage.setItem('mwa-cal-view', view), [view])
+  useEffect(() => {
+    try {
+      localStorage.setItem('mwa-cal-view', view)
+    } catch {
+      /* ignore */
+    }
+  }, [view])
 
   const days = view === 'day' ? [cursor] : Array.from({ length: 7 }, (_, i) => addDays(startOfWeek(cursor, { weekStartsOn: 1 }), i))
   const step = (n: number) => setCursor(view === 'day' ? addDays(cursor, n) : view === 'month' ? addMonths(cursor, n) : addWeeks(cursor, n))
