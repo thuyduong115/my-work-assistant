@@ -21,6 +21,10 @@ create policy "own rows" on public.items
 create or replace function public.items_touch() returns trigger
 language plpgsql as $$
 begin
+  -- never let an older copy (from a device that was offline) overwrite a newer one
+  if tg_op = 'UPDATE' and new.updated_at < old.updated_at then
+    return null;
+  end if;
   new.server_updated := now();
   return new;
 end $$;

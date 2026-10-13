@@ -9,6 +9,7 @@ import { initSync, resendConfirmation, signIn, signOut, signUp, syncNow, useSync
 import { SUPABASE_SQL } from '@/sync/schema'
 import { cn } from '@/lib/utils'
 import { GcalSettings } from '@/gcal/GcalUI'
+import { SyncHealth, Trash } from '@/components/SyncTools'
 import { showNotification } from '@/lib/reminders'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -286,6 +287,7 @@ function SyncSection() {
             </Button>
           </div>
         )}
+        {session && <SyncHealth />}
       </div>
     </Section>
   )
@@ -344,7 +346,10 @@ function DataSection() {
           <Trash2 /> Xoá dữ liệu trên máy
         </Button>
       </div>
-    </Section>
+      <div className="mt-4">
+          <Trash />
+        </div>
+      </Section>
   )
 }
 

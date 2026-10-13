@@ -216,3 +216,39 @@ export async function signOut() {
   if (channel) void client?.removeChannel(channel)
   channel = null
 }
+
+export type Counts = Partial<Record<TableName, { alive: number; deleted: number }>>
+
+/** Row counts per kind on the server (for the sync health check) */
+export async function serverCounts(): Promise<Counts> {
+  const sb = getClient()
+  if (!sb || !useSync.getState().session) throw new Error('Chưa đăng nhập')
+  const out: Counts = {}
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('items').select('kind,deleted').order('id').range(from, from + 999)
+    if (error) throw error
+    for (const r of data ?? []) {
+      const c = (out[r.kind as TableName] ??= { alive: 0, deleted: 0 })
+      if (r.deleted) c.deleted++
+      else c.alive++
+    }
+    if (!data || data.length < 1000) break
+  }
+  return out
+}
+
+export async function localCounts(): Promise<Counts> {
+  const out: Counts = {}
+  for (const t of TABLES) {
+    const rows = await table(t).toArray()
+    out[t] = { alive: rows.filter((r) => !r.deleted).length, deleted: rows.filter((r) => r.deleted).length }
+  }
+  return out
+}
+
+/** Forget the pull cursor and fetch everything again (keeps whichever copy is newer) */
+export async function fullResync() {
+  const s = useSync.getState().session
+  if (s) localStorage.removeItem(cursorKey(s.user.id))
+  await syncNow()
+}
