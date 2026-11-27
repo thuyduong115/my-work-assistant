@@ -260,38 +260,73 @@ function CheckBox({ mark, color, onClick }: { mark: Mark; color: string; onClick
 }
 
 /** Rename, re-icon, recolour, add or remove checklist categories */
-function CategoryEditor({ categories }: { categories: TaskCategory[] }) {
+/** Remove a category after confirming; its tasks fall back to the title-based guess */
+function deleteCategory(categories: TaskCategory[], c: TaskCategory) {
+  if (categories.length <= 1) return toast.error('Cần giữ lại ít nhất 1 loại việc')
+  if (!confirm(`Xoá loại "${c.name}"? Các việc trong loại này sẽ được tự xếp vào loại khác theo tên.`)) return
+  void saveCategories(categories.filter((x) => x.id !== c.id))
+  toast.success(`Đã xoá loại "${c.name}"`)
+}
+
+/** One editable row: saves when you leave the field, not on every keystroke */
+function CategoryRow({ c, categories }: { c: TaskCategory; categories: TaskCategory[] }) {
+  const [icon, setIcon] = useState(c.icon)
+  const [name, setName] = useState(c.name)
+  useEffect(() => {
+    setIcon(c.icon)
+    setName(c.name)
+  }, [c.icon, c.name])
+  const save = (patch: Partial<TaskCategory>) => void saveCategories(categories.map((x) => (x.id === c.id ? { ...x, ...patch } : x)))
+  return (
+    <div className="flex items-center gap-2">
+      <input value={icon} onChange={(e) => setIcon(e.target.value.slice(0, 4))} onBlur={() => icon !== c.icon && save({ icon: icon || '⭐' })} className="h-8 w-11 rounded-md border bg-transparent text-center" aria-label="Biểu tượng" />
+      <Input value={name} onChange={(e) => setName(e.target.value)} onBlur={() => name.trim() && name !== c.name && save({ name: name.trim() })} onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} className="h-8" />
+      <input type="color" defaultValue={c.color} onBlur={(e) => e.target.value !== c.color && save({ color: e.target.value })} className="h-8 w-10 shrink-0 cursor-pointer rounded-md border bg-transparent p-0.5" aria-label="Màu" />
+      <Button size="icon-sm" variant="ghost" className="text-muted-foreground hover:text-destructive" onClick={() => deleteCategory(categories, c)} aria-label={`Xoá loại ${c.name}`} title="Xoá loại">
+        <Trash2 />
+      </Button>
+    </div>
+  )
+}
+
+/** Add a category: emoji + name (colour picked automatically, editable after) */
+function AddCategory({ categories, onDone, compact }: { categories: TaskCategory[]; onDone?: () => void; compact?: boolean }) {
   const [name, setName] = useState('')
   const [icon, setIcon] = useState('⭐')
-  const set = (next: TaskCategory[]) => void saveCategories(next)
   return (
-    <div className="no-print mb-3 grid gap-1.5 rounded-xl border bg-card/80 p-3 font-sans text-sm">
-      <div className="text-xs text-muted-foreground">Loại việc của checklist (đồng bộ mọi thiết bị). Việc chưa gán loại sẽ được đoán theo tên.</div>
-      {categories.map((c) => (
-        <div key={c.id} className="flex items-center gap-2">
-          <input value={c.icon} onChange={(e) => set(categories.map((x) => (x.id === c.id ? { ...x, icon: e.target.value.slice(0, 4) } : x)))} className="h-8 w-11 rounded-md border bg-transparent text-center" aria-label="Biểu tượng" />
-          <Input value={c.name} onChange={(e) => set(categories.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)))} className="h-8" />
-          <input type="color" value={c.color} onChange={(e) => set(categories.map((x) => (x.id === c.id ? { ...x, color: e.target.value } : x)))} className="h-8 w-10 shrink-0 cursor-pointer rounded-md border bg-transparent p-0.5" aria-label="Màu" />
-          <IconBtn label="Xoá loại" onClick={() => categories.length > 1 && set(categories.filter((x) => x.id !== c.id))}>
-            <Trash2 />
-          </IconBtn>
-        </div>
-      ))}
-      <form
-        className="flex items-center gap-2"
-        onSubmit={(e) => {
-          e.preventDefault()
-          if (!name.trim()) return
-          set([...categories, { id: uid(), name: name.trim(), icon: icon || '⭐', color: COLORS[categories.length % COLORS.length] }])
-          setName('')
-        }}
-      >
-        <input value={icon} onChange={(e) => setIcon(e.target.value.slice(0, 4))} className="h-8 w-11 rounded-md border bg-transparent text-center" aria-label="Biểu tượng" />
-        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Loại mới, vd: Side project" className="h-8" />
-        <Button size="sm" type="submit">
-          Thêm
+    <form
+      className="flex items-center gap-2"
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (!name.trim()) return
+        void saveCategories([...categories, { id: uid(), name: name.trim(), icon: icon || '⭐', color: COLORS[categories.length % COLORS.length] }])
+        toast.success(`Đã thêm loại "${name.trim()}"`)
+        setName('')
+        onDone?.()
+      }}
+    >
+      <input value={icon} onChange={(e) => setIcon(e.target.value.slice(0, 4))} className="h-8 w-11 rounded-md border bg-transparent text-center" aria-label="Biểu tượng" />
+      <Input autoFocus={compact} value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Escape' && onDone?.()} placeholder="Tên loại mới, vd: Side project" className="h-8" />
+      <Button size="sm" type="submit" disabled={!name.trim()}>
+        Thêm
+      </Button>
+      {onDone && (
+        <Button size="sm" type="button" variant="ghost" onClick={onDone}>
+          Huỷ
         </Button>
-      </form>
+      )}
+    </form>
+  )
+}
+
+function CategoryEditor({ categories }: { categories: TaskCategory[] }) {
+  return (
+    <div className="no-print mb-3 grid gap-1.5 rounded-xl border bg-card p-3 font-sans text-sm">
+      <div className="text-xs text-muted-foreground">Sửa tên, emoji, màu; xoá hoặc thêm loại. Đồng bộ mọi thiết bị. Việc chưa gán loại được đoán theo tên.</div>
+      {categories.map((c) => (
+        <CategoryRow key={c.id} c={c} categories={categories} />
+      ))}
+      <AddCategory categories={categories} />
     </div>
   )
 }
@@ -330,6 +365,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const save = (patch: Partial<Journal>) => saveJournal(date, patch)
   const { theme } = useMonthTheme(date.slice(0, 7))
   const [editCats, setEditCats] = useState(false)
+  const [addingCat, setAddingCat] = useState(false)
   const tp = themeProps(theme)
 
   const groups = useMemo(
@@ -432,14 +468,22 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
         {/* left column: checklist + notes */}
         <div className="grid content-start gap-5">
           <section>
-            <H action={<IconBtn label="Sửa các loại việc" onClick={() => setEditCats(!editCats)}>{editCats ? <X /> : <Pencil />}</IconBtn>}>Checklist</H>
+            <H
+              action={
+                <button type="button" onClick={() => setEditCats(!editCats)} className="no-print inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-sans text-xs text-muted-foreground hover:bg-muted hover:text-foreground" aria-label="Sửa các loại việc">
+                  {editCats ? <X className="size-3" /> : <Tags className="size-3" />} {editCats ? 'Xong' : 'Loại việc'}
+                </button>
+              }
+            >
+              Checklist
+            </H>
             {editCats && <CategoryEditor categories={categories} />}
             <div className="grid gap-3">
               {groups.map(({ cat, list }) => {
                 const done = list.filter((x) => x.task.status === 'done').length
                 return (
                   <div key={cat.id}>
-                    <div className="mb-0.5 flex items-center gap-1.5 border-b border-dashed pb-0.5" style={{ borderColor: `color-mix(in oklch, ${cat.color} 45%, transparent)` }}>
+                    <div className="group/cat mb-0.5 flex items-center gap-1.5 border-b border-dashed pb-0.5" style={{ borderColor: `color-mix(in oklch, ${cat.color} 45%, transparent)` }}>
                       <span className="text-base leading-none">{cat.icon}</span>
                       <span className="text-[0.95rem] font-bold" style={{ color: cat.color }}>
                         {cat.name}
@@ -451,6 +495,9 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                       )}
                       <button type="button" onClick={() => setAdding(cat.id)} className="no-print ml-auto rounded px-1 text-xs text-muted-foreground hover:text-primary" aria-label={`Thêm việc ${cat.name}`}>
                         + thêm
+                      </button>
+                      <button type="button" onClick={() => deleteCategory(categories, cat)} className="no-print rounded p-0.5 text-muted-foreground/60 opacity-0 transition group-hover/cat:opacity-100 hover:text-destructive focus:opacity-100" aria-label={`Xoá loại ${cat.name}`} title="Xoá loại này">
+                        <X className="size-3.5" />
                       </button>
                     </div>
                     <ul className="grid gap-[3px] pl-1">
@@ -503,6 +550,15 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                   </div>
                 )
               })}
+              <div className="no-print">
+                {addingCat ? (
+                  <AddCategory categories={categories} compact onDone={() => setAddingCat(false)} />
+                ) : (
+                  <button type="button" onClick={() => setAddingCat(true)} className="text-xs text-muted-foreground hover:text-primary">
+                    + Thêm loại
+                  </button>
+                )}
+              </div>
               {(journal?.bullets ?? []).length > 0 && (
                 <ul className="grid gap-0.5 pl-1">
                   {journal!.bullets!.map((b) => (
