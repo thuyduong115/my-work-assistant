@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useCategories } from '@/lib/categories'
 import { Trash2 } from 'lucide-react'
 import { db, put, putMany, remove } from '@/db/db'
 import { useRoles } from '@/db/hooks'
@@ -13,6 +14,7 @@ import { iconText } from './AppIcon'
 
 export function ProjectDialog({ project, onClose, defaultRoleId }: { project?: Project; onClose: (id?: string) => void; defaultRoleId?: string }) {
   const roles = useRoles()
+  const categories = useCategories()
   const [f, setF] = useState({
     name: project?.name ?? '',
     icon: project?.icon ?? '📁',
@@ -21,11 +23,12 @@ export function ProjectDialog({ project, onClose, defaultRoleId }: { project?: P
     status: project?.status ?? 'active',
     deadline: project?.deadline ?? '',
     description: project?.description ?? '',
+    defaultCategory: project?.defaultCategory ?? '',
   })
   const save = async () => {
     if (!f.name.trim()) return
     const id = project?.id ?? uid()
-    await put('projects', { id, ...f, name: f.name.trim(), deadline: f.deadline || undefined, createdAt: project?.createdAt ?? Date.now(), deleted: 0 })
+    await put('projects', { id, ...f, name: f.name.trim(), deadline: f.deadline || undefined, defaultCategory: f.defaultCategory || undefined, createdAt: project?.createdAt ?? Date.now(), deleted: 0 })
     onClose(id)
   }
   return (
@@ -90,6 +93,18 @@ export function ProjectDialog({ project, onClose, defaultRoleId }: { project?: P
             <Label>Deadline</Label>
             <Input type="date" value={f.deadline} onChange={(e) => setF({ ...f, deadline: e.target.value })} />
           </div>
+        </div>
+        <div>
+          <Label>Loại việc mặc định cho task (tuỳ chọn)</Label>
+          <Select value={f.defaultCategory} onChange={(e) => setF({ ...f, defaultCategory: e.target.value })}>
+            <option value="">— Không — (đoán theo tên từng task)</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.icon} {c.name}
+              </option>
+            ))}
+          </Select>
+          <p className="mt-1 text-xs text-muted-foreground">Task trong project tự vào loại này ở Checklist; vẫn đổi riêng từng task được.</p>
         </div>
         <div>
           <Label>Mô tả / mục tiêu</Label>

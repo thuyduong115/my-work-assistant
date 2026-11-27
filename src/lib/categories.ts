@@ -28,9 +28,14 @@ const RULES: [string, RegExp][] = [
   ['personal', /(gọi|mẹ|bố|ba|gia đình|bạn|sinh nhật|du lịch|đọc truyện|xem phim|cà phê|hẹn)/i],
 ]
 
-/** Category a task belongs to: chosen by hand, else guessed from its title */
-export function taskCategory(t: Task, cats: TaskCategory[]): string {
+/**
+ * Category a task belongs to: chosen on the task, else its project's default,
+ * else guessed from the title.
+ */
+export function taskCategory(t: Task, cats: TaskCategory[], projectDefault?: (projectId: string) => string | undefined): string {
   if (t.category && cats.some((c) => c.id === t.category)) return t.category
+  const pd = t.projectId ? projectDefault?.(t.projectId) : undefined
+  if (pd && cats.some((c) => c.id === pd)) return pd
   for (const [id, re] of RULES) if (cats.some((c) => c.id === id) && re.test(t.title)) return id
   return cats.some((c) => c.id === 'personal') ? 'personal' : cats[0]?.id ?? ''
 }

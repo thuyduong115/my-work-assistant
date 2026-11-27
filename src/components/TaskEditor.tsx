@@ -191,7 +191,12 @@ export function TaskEditor() {
           <div>
             <Label>Loại việc</Label>
             <Select value={form.category ?? ''} onChange={(e) => set({ category: e.target.value || undefined })}>
-              <option value="">Tự đoán theo tên</option>
+              <option value="">
+                {(() => {
+                  const def = categories.find((c) => c.id === projects.find((p) => p.id === form.projectId)?.defaultCategory)
+                  return def ? `Theo project: ${def.icon} ${def.name}` : 'Tự đoán theo tên'
+                })()}
+              </option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.icon} {c.name}

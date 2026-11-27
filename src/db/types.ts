@@ -26,6 +26,8 @@ export interface Project extends Base {
   status: 'active' | 'paused' | 'done'
   deadline?: string
   description?: string
+  /** checklist category its tasks get unless a task picks its own */
+  defaultCategory?: string
   createdAt: number
 }
 

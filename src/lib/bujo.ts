@@ -132,7 +132,7 @@ export function dayTasks(date: string, tasks: Task[], today = dayKey()) {
 }
 
 /** Focus minutes per role on a day + manual block totals */
-export function dayTime(date: string, d: { tasks: Task[]; entries: TimeEntry[]; roles: Role[]; journal?: Journal | null; categories?: TaskCategory[] }) {
+export function dayTime(date: string, d: { tasks: Task[]; entries: TimeEntry[]; roles: Role[]; journal?: Journal | null; categories?: TaskCategory[]; projects?: Project[] }) {
   const byRole = new Map<string, number>()
   let focus = 0
   for (const e of d.entries) {
@@ -141,7 +141,7 @@ export function dayTime(date: string, d: { tasks: Task[]; entries: TimeEntry[]; 
     const m = c[1] - c[0]
     focus += m
     const t = d.tasks.find((x) => x.id === e.taskId)
-    const key = d.categories ? (t ? taskCategory(t, d.categories) : '') : t?.roleId ?? ''
+    const key = d.categories ? (t ? taskCategory(t, d.categories, (id) => d.projects?.find((p) => p.id === id)?.defaultCategory) : '') : t?.roleId ?? ''
     byRole.set(key, (byRole.get(key) ?? 0) + m)
   }
   const byKind = new Map<JournalBlock['kind'], number>()

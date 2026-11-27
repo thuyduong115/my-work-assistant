@@ -353,7 +353,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const ownEvents = useMemo(() => events.filter((e) => !e.title.startsWith('✅')), [events])
   const tl = useMemo(() => timeline(date, { tasks, entries, projects, roles, events: ownEvents, journal }), [date, tasks, entries, projects, roles, ownEvents, journal])
   const items = useMemo(() => dayTasks(date, tasks, today), [date, tasks, today])
-  const time = useMemo(() => dayTime(date, { tasks, entries, roles, journal, categories }), [date, tasks, entries, roles, journal, categories])
+  const time = useMemo(() => dayTime(date, { tasks, entries, roles, journal, categories, projects }), [date, tasks, entries, roles, journal, categories, projects])
   const dayHabits = habits.filter((h) => !h.archived && habitActiveOn(h, date))
   const pageNo = journals.filter((j) => j.date <= date).length + (journal ? 0 : 1)
   const top3 = new Set(journal?.top3 ?? [])
@@ -364,8 +364,11 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const tp = themeProps(theme)
 
   const groups = useMemo(
-    () => categories.map((c) => ({ cat: c, list: items.filter((it) => taskCategory(it.task, categories) === c.id) })),
-    [items, categories],
+    () => {
+      const projectDefault = (id: string) => projects.find((p) => p.id === id)?.defaultCategory
+      return categories.map((c) => ({ cat: c, list: items.filter((it) => taskCategory(it.task, categories, projectDefault) === c.id) }))
+    },
+    [items, categories, projects],
   )
 
   const addTask = async (category: string | undefined, text: string) => {
