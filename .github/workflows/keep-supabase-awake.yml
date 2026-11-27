@@ -16,8 +16,8 @@ jobs:
     steps:
       - name: Ping Supabase
         env:
-          URL: ${{ vars.VITE_SUPABASE_URL || 'https://wsqfexzfjkgmnpdbault.supabase.co' }}
-          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_dnNMksYdMYOw7wQ_-69XTQ_AgETjcIV' }}
+          URL: ${{ vars.VITE_SUPABASE_URL }}
+          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
         run: |
           if [ -z "$URL" ] || [ -z "$KEY" ]; then
             echo "::warning::Set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY repository variables to keep Supabase awake."

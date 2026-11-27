@@ -73,7 +73,7 @@ export const useGCal = create<GState>()(
       merge: (persisted, current) => {
         const m = { ...current, ...(persisted as object) }
         // the built-in client replaces an older one saved here (the previous client was deleted)
-        if (m.clientId !== current.clientId) m.clientId = current.clientId
+        if (current.clientId && m.clientId !== current.clientId) m.clientId = current.clientId
         return m
       },
     },

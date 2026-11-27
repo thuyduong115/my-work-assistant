@@ -78,7 +78,7 @@ export const useSettings = create<Settings>()(
         const merged = { ...current, ...p }
         // build-time Supabase config fills blanks
         // built-in project fills blanks, and its current key replaces an older one saved here
-        if (!merged.supabase?.url || merged.supabase.url.trim().replace(/\/$/, '') === DEFAULT_SUPABASE_URL) merged.supabase = current.supabase
+        if (DEFAULT_SUPABASE_URL && (!merged.supabase?.url || merged.supabase.url.trim().replace(/\/$/, '') === DEFAULT_SUPABASE_URL.replace(/\/$/, ''))) merged.supabase = current.supabase
         return merged
       },
     },
