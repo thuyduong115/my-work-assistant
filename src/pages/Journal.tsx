@@ -2,24 +2,25 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { addDays, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { BookOpen, CalendarRange, ChevronLeft, ChevronRight, Columns2, Pencil, Plus, Square, Trash2, Type, X } from 'lucide-react'
+import { BookOpen, CalendarRange, Check, ChevronLeft, ChevronRight, Columns2, Pencil, Plus, Square, Tags, Trash2, Type, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
-import { createTask, GOALS_ID, journalId, monthId, saveJournal, updateGoals, updateJournal } from '@/db/actions'
+import { createTask, updateTask, GOALS_ID, journalId, monthId, saveJournal, updateGoals, updateJournal } from '@/db/actions'
 import { DEFAULT_ROLE_ID } from '@/db/db'
-import type { Journal, JournalBlock, JournalBullet } from '@/db/types'
+import type { Journal, JournalBlock, JournalBullet, TaskCategory } from '@/db/types'
 import { useGCal } from '@/gcal/gcal'
 import { parseDuration } from '@/ai/fallback'
 import { BLOCK_KINDS, cleanTime, dayTasks, dayTime, fmtHM, lanes, mottoFor, timeline, type Mark, type Seg } from '@/lib/bujo'
 import { completeTask } from '@/lib/celebrate'
 import { fmtAmount, habitKind, habitUnit, isHabitDone, logValue } from '@/lib/habits'
 import { habitActiveOn } from '@/lib/stats'
-import { cn, dayKey, fromDayKey, minToHHMM, uid } from '@/lib/utils'
+import { cn, COLORS, dayKey, fromDayKey, minToHHMM, uid } from '@/lib/utils'
+import { saveCategories, taskCategory, useCategories } from '@/lib/categories'
+import { Dropdown, DropdownItem } from '@/components/ui/dropdown'
 import { useUI } from '@/stores/ui'
 import { tapHabit } from './Habits'
 import { MOOD } from '@/components/Ritual'
 import { ThemeDecor, ThemePicker, themeProps, useMonthTheme } from '@/components/BujoTheme'
-import { AppIcon } from '@/components/AppIcon'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
@@ -238,7 +239,62 @@ function BlockDialog({ date, block, startMin, onClose }: { date: string; block?:
 
 /* ------------------------------------------------------------------ page */
 
-const MARK_STYLE: Record<Mark, string> = { '•': '', '×': 'text-success', '>': 'text-warning', '△': 'text-sky-500' }
+/** Square checkbox: empty, ticked, in progress (half), or left over from a past day */
+function CheckBox({ mark, color, onClick }: { mark: Mark; color: string; onClick: () => void }) {
+  const done = mark === '×'
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={done}
+      onClick={onClick}
+      title={done ? 'Bỏ đánh dấu xong' : 'Đánh dấu xong'}
+      className="relative grid size-[17px] shrink-0 place-items-center overflow-hidden rounded-[4px] border-[1.5px] transition hover:scale-110"
+      style={{ borderColor: mark === '>' ? 'var(--warning)' : color, background: done ? color : undefined }}
+    >
+      {done && <Check className="size-3 text-white" strokeWidth={3.5} />}
+      {mark === '△' && <span className="absolute inset-y-0 left-0 w-1/2" style={{ background: color, opacity: 0.55 }} />}
+      {mark === '>' && <ChevronRight className="size-3 text-warning" strokeWidth={3} />}
+    </button>
+  )
+}
+
+/** Rename, re-icon, recolour, add or remove checklist categories */
+function CategoryEditor({ categories }: { categories: TaskCategory[] }) {
+  const [name, setName] = useState('')
+  const [icon, setIcon] = useState('⭐')
+  const set = (next: TaskCategory[]) => void saveCategories(next)
+  return (
+    <div className="no-print mb-3 grid gap-1.5 rounded-xl border bg-card/80 p-3 font-sans text-sm">
+      <div className="text-xs text-muted-foreground">Loại việc của checklist (đồng bộ mọi thiết bị). Việc chưa gán loại sẽ được đoán theo tên.</div>
+      {categories.map((c) => (
+        <div key={c.id} className="flex items-center gap-2">
+          <input value={c.icon} onChange={(e) => set(categories.map((x) => (x.id === c.id ? { ...x, icon: e.target.value.slice(0, 4) } : x)))} className="h-8 w-11 rounded-md border bg-transparent text-center" aria-label="Biểu tượng" />
+          <Input value={c.name} onChange={(e) => set(categories.map((x) => (x.id === c.id ? { ...x, name: e.target.value } : x)))} className="h-8" />
+          <input type="color" value={c.color} onChange={(e) => set(categories.map((x) => (x.id === c.id ? { ...x, color: e.target.value } : x)))} className="h-8 w-10 shrink-0 cursor-pointer rounded-md border bg-transparent p-0.5" aria-label="Màu" />
+          <IconBtn label="Xoá loại" onClick={() => categories.length > 1 && set(categories.filter((x) => x.id !== c.id))}>
+            <Trash2 />
+          </IconBtn>
+        </div>
+      ))}
+      <form
+        className="flex items-center gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!name.trim()) return
+          set([...categories, { id: uid(), name: name.trim(), icon: icon || '⭐', color: COLORS[categories.length % COLORS.length] }])
+          setName('')
+        }}
+      >
+        <input value={icon} onChange={(e) => setIcon(e.target.value.slice(0, 4))} className="h-8 w-11 rounded-md border bg-transparent text-center" aria-label="Biểu tượng" />
+        <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Loại mới, vd: Side project" className="h-8" />
+        <Button size="sm" type="submit">
+          Thêm
+        </Button>
+      </form>
+    </div>
+  )
+}
 const BULLET_MARK: Record<JournalBullet['kind'], string> = { note: '–', event: '○', idea: '!' }
 
 export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
@@ -246,6 +302,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const entries = useTimeEntries()
   const projects = useProjects()
   const roles = useRoles()
+  const categories = useCategories()
   const habits = useHabits()
   const logs = useHabitLogs()
   const journals = useJournals()
@@ -265,29 +322,25 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const ownEvents = useMemo(() => events.filter((e) => !e.title.startsWith('✅')), [events])
   const tl = useMemo(() => timeline(date, { tasks, entries, projects, roles, events: ownEvents, journal }), [date, tasks, entries, projects, roles, ownEvents, journal])
   const items = useMemo(() => dayTasks(date, tasks, today), [date, tasks, today])
-  const time = useMemo(() => dayTime(date, { tasks, entries, roles, journal }), [date, tasks, entries, roles, journal])
+  const time = useMemo(() => dayTime(date, { tasks, entries, roles, journal, categories }), [date, tasks, entries, roles, journal, categories])
   const goals = (goalsRow?.goals ?? []).filter((g) => !g.archived)
   const dayHabits = habits.filter((h) => !h.archived && habitActiveOn(h, date))
   const pageNo = journals.filter((j) => j.date <= date).length + (journal ? 0 : 1)
   const top3 = new Set(journal?.top3 ?? [])
   const save = (patch: Partial<Journal>) => saveJournal(date, patch)
   const { theme } = useMonthTheme(date.slice(0, 7))
+  const [editCats, setEditCats] = useState(false)
   const tp = themeProps(theme)
 
-  const groups = useMemo(() => {
-    const m = new Map<string, typeof items>()
-    for (const it of items) {
-      const k = it.task.roleId && roles.some((r) => r.id === it.task.roleId) ? it.task.roleId : ''
-      if (!m.has(k)) m.set(k, [])
-      m.get(k)!.push(it)
-    }
-    return [...m.entries()].map(([id, list]) => ({ id, role: roles.find((r) => r.id === id), list }))
-  }, [items, roles])
+  const groups = useMemo(
+    () => categories.map((c) => ({ cat: c, list: items.filter((it) => taskCategory(it.task, categories) === c.id) })),
+    [items, categories],
+  )
 
-  const addTask = async (roleId: string, text: string) => {
+  const addTask = async (category: string | undefined, text: string) => {
     const [est, title] = parseDuration(text)
     if (!(title || text).trim()) return
-    await createTask({ title: (title || text).trim(), roleId: roleId || DEFAULT_ROLE_ID, scheduledDate: date, estimateMin: est ?? 30 })
+    await createTask({ title: (title || text).trim(), roleId: DEFAULT_ROLE_ID, category, scheduledDate: date, estimateMin: est ?? 30 })
   }
   const addQuick = async () => {
     const t = quick.trim()
@@ -296,7 +349,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
     if (m) {
       const kind: JournalBullet['kind'] = m[1] === '!' ? 'idea' : m[1].startsWith('o') || m[1] === '○' ? 'event' : 'note'
       await updateJournal(date, (j) => ({ bullets: [...(j?.bullets ?? []), { id: uid(), kind, text: m[2].trim() }] }))
-    } else await addTask(DEFAULT_ROLE_ID, t)
+    } else await addTask(undefined, t)
     setQuick('')
   }
   const toggleGoal = (id: string) =>
@@ -379,58 +432,79 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
         {/* left column: checklist + notes */}
         <div className="grid content-start gap-5">
           <section>
-            <H>Checklist</H>
-            {groups.length === 0 && !(journal?.bullets ?? []).length && <p className="text-sm text-muted-foreground">Chưa có việc cho ngày này.</p>}
+            <H action={<IconBtn label="Sửa các loại việc" onClick={() => setEditCats(!editCats)}>{editCats ? <X /> : <Pencil />}</IconBtn>}>Checklist</H>
+            {editCats && <CategoryEditor categories={categories} />}
             <div className="grid gap-3">
-              {groups.map((g) => (
-                <div key={g.id} className="grid grid-cols-[auto_1fr] gap-x-3">
-                  <div className="flex w-16 flex-col items-center gap-0.5 border-r pr-2 pt-0.5 text-center">
-                    <AppIcon value={g.role?.icon ?? '📌'} size={18} style={{ color: g.role?.color }} />
-                    <span className="line-clamp-2 text-[11px] leading-tight text-muted-foreground">{g.role?.name ?? 'Khác'}</span>
-                  </div>
-                  <ul className="grid gap-0.5">
-                    {g.list.map(({ task, mark, time }) => (
-                      <li key={task.id} className="group flex items-baseline gap-2">
-                        <button type="button" onClick={() => void completeTask(task)} title="Đánh dấu xong / chưa xong" className={cn('w-4 shrink-0 text-center font-mono text-base leading-none font-bold', MARK_STYLE[mark])}>
-                          {mark}
-                        </button>
-                        <button type="button" onClick={() => openTask(task.id)} className={cn('min-w-0 flex-1 text-left text-[0.95rem] leading-snug hover:text-primary', mark === '×' && 'text-muted-foreground line-through decoration-1')}>
-                          {top3.has(task.id) && <span className="mr-0.5 text-amber-500">★</span>}
-                          {task.title}
-                        </button>
-                        {time && <span className="shrink-0 text-[11px] text-muted-foreground tabular">{time}</span>}
-                      </li>
-                    ))}
-                    {adding === g.id ? (
-                      <li>
-                        <input
-                          autoFocus
-                          value={addText}
-                          onChange={(e) => setAddText(e.target.value)}
-                          onBlur={() => setAdding(null)}
-                          onKeyDown={async (e) => {
-                            if (e.key === 'Escape') setAdding(null)
-                            if (e.key === 'Enter' && addText.trim()) {
-                              await addTask(g.id, addText)
-                              setAddText('')
+              {groups.map(({ cat, list }) => {
+                const done = list.filter((x) => x.task.status === 'done').length
+                return (
+                  <div key={cat.id}>
+                    <div className="mb-0.5 flex items-center gap-1.5 border-b border-dashed pb-0.5" style={{ borderColor: `color-mix(in oklch, ${cat.color} 45%, transparent)` }}>
+                      <span className="text-base leading-none">{cat.icon}</span>
+                      <span className="text-[0.95rem] font-bold" style={{ color: cat.color }}>
+                        {cat.name}
+                      </span>
+                      {list.length > 0 && (
+                        <span className="text-[11px] text-muted-foreground tabular">
+                          {done}/{list.length}
+                        </span>
+                      )}
+                      <button type="button" onClick={() => setAdding(cat.id)} className="no-print ml-auto rounded px-1 text-xs text-muted-foreground hover:text-primary" aria-label={`Thêm việc ${cat.name}`}>
+                        + thêm
+                      </button>
+                    </div>
+                    <ul className="grid gap-[3px] pl-1">
+                      {list.map(({ task, mark, time }) => (
+                        <li key={task.id} className="group flex items-center gap-2">
+                          <CheckBox mark={mark} color={cat.color} onClick={() => void completeTask(task)} />
+                          <button type="button" onClick={() => openTask(task.id)} className={cn('min-w-0 flex-1 text-left text-[0.95rem] leading-snug hover:text-primary', mark === '×' && 'text-muted-foreground line-through decoration-1')}>
+                            {top3.has(task.id) && <span className="mr-0.5 text-amber-500">★</span>}
+                            {task.title}
+                            {mark === '>' && <span className="ml-1.5 rounded bg-warning/15 px-1 text-[10px] text-warning no-underline">chưa xong</span>}
+                            {mark === '△' && <span className="ml-1.5 rounded bg-sky-500/15 px-1 text-[10px] text-sky-600">đang làm</span>}
+                          </button>
+                          {time && <span className="shrink-0 text-[11px] text-muted-foreground tabular">{time}</span>}
+                          <Dropdown
+                            trigger={
+                              <button type="button" className="no-print shrink-0 rounded p-0.5 text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted focus:opacity-100" aria-label="Đổi loại việc" title="Đổi loại việc">
+                                <Tags className="size-3.5" />
+                              </button>
                             }
-                          }}
-                          placeholder="Tên việc (vd: Đọc bài 30p) ↵"
-                          className="w-full border-b border-primary bg-transparent py-0.5 text-sm outline-none"
-                        />
-                      </li>
-                    ) : (
-                      <li className="no-print">
-                        <button type="button" onClick={() => setAdding(g.id)} className="text-xs text-muted-foreground opacity-60 hover:text-primary hover:opacity-100">
-                          + thêm
-                        </button>
-                      </li>
-                    )}
-                  </ul>
-                </div>
-              ))}
+                          >
+                            {categories.map((c) => (
+                              <DropdownItem key={c.id} onSelect={() => void updateTask(task.id, { category: c.id })}>
+                                {c.icon} {c.name}
+                              </DropdownItem>
+                            ))}
+                          </Dropdown>
+                        </li>
+                      ))}
+                      {adding === cat.id && (
+                        <li>
+                          <input
+                            autoFocus
+                            value={addText}
+                            onChange={(e) => setAddText(e.target.value)}
+                            onBlur={() => setAdding(null)}
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Escape') setAdding(null)
+                              if (e.key === 'Enter' && addText.trim()) {
+                                await addTask(cat.id, addText)
+                                setAddText('')
+                              }
+                            }}
+                            placeholder={`Việc ${cat.name.toLowerCase()} (vd: Đọc bài 30p) ↵`}
+                            className="w-full border-b bg-transparent py-0.5 text-sm outline-none"
+                            style={{ borderColor: cat.color }}
+                          />
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )
+              })}
               {(journal?.bullets ?? []).length > 0 && (
-                <ul className="grid gap-0.5 pl-[76px]">
+                <ul className="grid gap-0.5 pl-1">
                   {journal!.bullets!.map((b) => (
                     <li key={b.id} className="group flex items-baseline gap-2">
                       <span className={cn('w-4 shrink-0 text-center font-mono font-bold', b.kind === 'idea' && 'text-amber-500', b.kind === 'event' && 'text-sky-500')}>{BULLET_MARK[b.kind]}</span>
@@ -451,7 +525,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                 placeholder="Ghi nhanh ↵   ( - ghi chú · o sự kiện · ! ý tưởng · còn lại = việc )"
                 className="w-full rounded-lg border border-dashed bg-transparent px-3 py-1.5 text-sm outline-none focus:border-primary"
               />
-              <p className="mt-1 text-[11px] text-muted-foreground">• việc · × xong · &gt; dời / chưa xong · △ đang làm · ★ việc chính · ○ sự kiện · – ghi chú · ! ý tưởng</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">☐ việc · ☑ xong · ★ việc chính · ○ sự kiện · – ghi chú · ! ý tưởng — bấm 🏷 cạnh việc để đổi loại</p>
             </div>
           </section>
 

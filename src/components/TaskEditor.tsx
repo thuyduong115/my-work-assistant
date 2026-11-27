@@ -16,10 +16,11 @@ import { Button } from './ui/button'
 import { Input, Label, Select, Textarea } from './ui/input'
 import { CheckCircle } from './ui/misc'
 import { iconText } from './AppIcon'
+import { useCategories } from '@/lib/categories'
 
 type Form = Pick<
   Task,
-  'title' | 'notes' | 'projectId' | 'roleId' | 'status' | 'priority' | 'estimateMin' | 'deadline' | 'deadlineTime' | 'scheduledDate' | 'scheduledTime' | 'energy' | 'recurrence' | 'parentId'
+  'title' | 'notes' | 'projectId' | 'roleId' | 'category' | 'status' | 'priority' | 'estimateMin' | 'deadline' | 'deadlineTime' | 'scheduledDate' | 'scheduledTime' | 'energy' | 'recurrence' | 'parentId'
 >
 
 const EST_PRESETS = [15, 30, 45, 60, 90, 120, 180, 240]
@@ -28,6 +29,7 @@ export function TaskEditor() {
   const { editingTaskId, newTask, closeTask } = useUI()
   const open = !!editingTaskId || !!newTask
   const tasks = useTasks() ?? []
+  const categories = useCategories()
   const projects = useProjects()
   const roles = useRoles()
   const entries = useTimeEntries()
@@ -50,6 +52,7 @@ export function TaskEditor() {
       notes: src.notes ?? '',
       projectId: src.projectId,
       roleId: src.roleId ?? (src.projectId ? undefined : roles[0]?.id),
+      category: src.category,
       status: src.status ?? 'todo',
       priority: src.priority ?? 'medium',
       estimateMin: src.estimateMin ?? 30,
@@ -181,6 +184,17 @@ export function TaskEditor() {
               {roles.map((r) => (
                 <option key={r.id} value={r.id}>
                   {iconText(r.icon)}{r.name}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Label>Loại việc</Label>
+            <Select value={form.category ?? ''} onChange={(e) => set({ category: e.target.value || undefined })}>
+              <option value="">Tự đoán theo tên</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.icon} {c.name}
                 </option>
               ))}
             </Select>

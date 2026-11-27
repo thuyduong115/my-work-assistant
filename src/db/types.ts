@@ -56,6 +56,8 @@ export interface Task extends Base {
   pinned?: boolean
   energy?: Energy
   recurrence?: Recurrence
+  /** checklist category id (work, study…) */
+  category?: string
   /** Eisenhower quadrant chosen by hand (overrides the deadline-based guess) */
   matrix?: 'do' | 'plan' | 'delegate' | 'drop'
   postponeCount: number
@@ -130,6 +132,14 @@ export interface BujoThemeSetting {
   density?: 0 | 1 | 2
 }
 
+/** Checklist category (Work, Study…), user-editable */
+export interface TaskCategory {
+  id: string
+  name: string
+  icon: string
+  color: string
+}
+
 /** Long-term goal you tick on the days you worked on it */
 export interface LongGoal {
   id: string
@@ -153,8 +163,9 @@ export interface Journal extends Base {
   bullets?: JournalBullet[]
   /** long-term goal ids worked on this day */
   goalsDone?: string[]
-  /** meta row only */
+  /** meta rows only */
   goals?: LongGoal[]
+  categories?: TaskCategory[]
   /** monthly review */
   good?: string
   improve?: string

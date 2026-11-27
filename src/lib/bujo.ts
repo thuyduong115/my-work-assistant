@@ -1,6 +1,7 @@
 import { endOfMonth, getDaysInMonth, startOfMonth } from 'date-fns'
 import type { GEvent } from '@/gcal/gcal'
-import type { Habit, HabitLog, Journal, JournalBlock, Project, Role, Task, TimeEntry } from '@/db/types'
+import type { Habit, HabitLog, Journal, JournalBlock, Project, Role, Task, TaskCategory, TimeEntry } from '@/db/types'
+import { taskCategory } from './categories'
 import { habitActiveOn } from './stats'
 import { isHabitDone, logValue } from './habits'
 import { topTasks } from './scheduler'
@@ -131,7 +132,7 @@ export function dayTasks(date: string, tasks: Task[], today = dayKey()) {
 }
 
 /** Focus minutes per role on a day + manual block totals */
-export function dayTime(date: string, d: { tasks: Task[]; entries: TimeEntry[]; roles: Role[]; journal?: Journal | null }) {
+export function dayTime(date: string, d: { tasks: Task[]; entries: TimeEntry[]; roles: Role[]; journal?: Journal | null; categories?: TaskCategory[] }) {
   const byRole = new Map<string, number>()
   let focus = 0
   for (const e of d.entries) {
@@ -139,13 +140,20 @@ export function dayTime(date: string, d: { tasks: Task[]; entries: TimeEntry[]; 
     if (!c) continue
     const m = c[1] - c[0]
     focus += m
-    const role = d.tasks.find((t) => t.id === e.taskId)?.roleId ?? ''
-    byRole.set(role, (byRole.get(role) ?? 0) + m)
+    const t = d.tasks.find((x) => x.id === e.taskId)
+    const key = d.categories ? (t ? taskCategory(t, d.categories) : '') : t?.roleId ?? ''
+    byRole.set(key, (byRole.get(key) ?? 0) + m)
   }
   const byKind = new Map<JournalBlock['kind'], number>()
   for (const b of d.journal?.blocks ?? []) byKind.set(b.kind, (byKind.get(b.kind) ?? 0) + Math.max(0, hhmmToMin(b.end) - hhmmToMin(b.start)))
+  const label = (id: string) => {
+    const c = d.categories?.find((x) => x.id === id)
+    if (c) return { name: `${c.icon} ${c.name}`, color: c.color }
+    const r = d.roles.find((x) => x.id === id)
+    return { name: r?.name ?? 'Khác', color: r?.color ?? '#94a3b8' }
+  }
   const roles = [...byRole.entries()]
-    .map(([id, min]) => ({ id, min, name: d.roles.find((r) => r.id === id)?.name ?? 'Khác', color: d.roles.find((r) => r.id === id)?.color ?? '#94a3b8' }))
+    .map(([id, min]) => ({ id, min, ...label(id) }))
     .sort((a, b) => b.min - a.min)
   return { focus, roles, byKind }
 }
