@@ -12,6 +12,8 @@ interface UIState {
   ritual?: 'morning' | 'evening'
   ritualStep?: number
   templatesOpen: boolean
+  /** study-log dialog: which day and (optionally) which course */
+  studyLog?: { date: string; courseId?: string }
   paletteOpen: boolean
   twoMinTaskId?: string
   chatOpen: boolean
@@ -23,6 +25,7 @@ interface UIState {
   openCapture: (prefill?: string, mode?: CaptureMode) => void
   openRitual: (r?: 'morning' | 'evening', step?: number) => void
   setTemplates: (o: boolean) => void
+  openStudyLog: (v?: { date: string; courseId?: string }) => void
   closeCapture: () => void
   setPalette: (o: boolean) => void
   openTwoMin: (taskId?: string) => void
@@ -43,6 +46,7 @@ export const useUI = create<UIState>((set) => ({
   openCapture: (prefill, mode = 'plan') => set({ captureOpen: true, capturePrefill: prefill, captureMode: mode }),
   openRitual: (ritual, ritualStep = 0) => set({ ritual, ritualStep }),
   setTemplates: (templatesOpen) => set({ templatesOpen }),
+  openStudyLog: (studyLog) => set({ studyLog }),
   closeCapture: () => set({ captureOpen: false, capturePrefill: undefined }),
   setPalette: (o) => set({ paletteOpen: o }),
   openTwoMin: (taskId) => set({ twoMinTaskId: taskId }),

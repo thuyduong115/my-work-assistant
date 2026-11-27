@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { BookOpen, CalendarDays, FolderKanban, Gauge, Home, Inbox, Repeat2, Settings, Timer, Users, LayoutGrid } from 'lucide-react'
+import { BookOpen, GraduationCap, CalendarDays, FolderKanban, Gauge, Home, Inbox, Repeat2, Settings, Timer, Users, LayoutGrid } from 'lucide-react'
 
 export interface NavItem {
   to: string
@@ -16,6 +16,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     { to: '/focus', label: 'Tập trung', icon: Timer, key: 'f' },
     { to: '/habits', label: 'Thói quen', icon: Repeat2, key: 'h' },
     { to: '/journal', label: 'Bullet Journal', icon: BookOpen, key: 'j' },
+    { to: '/learning', label: 'Học tập', icon: GraduationCap, key: 'l' },
   ] },
   { group: 'Tổ chức', items: [
     { to: '/projects', label: 'Projects', icon: FolderKanban, key: 'p' },

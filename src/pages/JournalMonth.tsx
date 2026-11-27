@@ -4,7 +4,7 @@ import { addMonths, format, getDay } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { BookOpen, ChevronLeft, ChevronRight, Loader2, Printer, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
-import { useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
+import { useCourses, useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
 import { GOALS_ID, monthId, saveMonth } from '@/db/actions'
 import { aiConfig, aiMonthlyReview } from '@/ai/ai'
 import { fmtHM, monthData } from '@/lib/bujo'
@@ -78,6 +78,25 @@ export default function JournalMonth() {
   const maxFocus = Math.max(60, ...m.days.map((x) => x.focus))
   const save = (patch: Parameters<typeof saveMonth>[1]) => saveMonth(month, patch)
   const { theme } = useMonthTheme(month)
+  const courses = useCourses()
+  const studyRows = useMemo(() => {
+    const by = new Map<string, { min: number; units: number; dates: Set<string> }>()
+    for (const j of journals)
+      if (j.date.startsWith(month))
+        for (const st of j.studies ?? []) {
+          const r = by.get(st.courseId) ?? { min: 0, units: 0, dates: new Set<string>() }
+          r.min += st.minutes
+          r.units += st.units ?? 0
+          r.dates.add(j.date)
+          by.set(st.courseId, r)
+        }
+    return [...by.entries()]
+      .map(([id, r]) => {
+        const c = courses.find((x) => x.id === id)
+        return { id, ...r, days: r.dates.size, name: c?.name ?? 'Khoá học đã xoá', icon: c?.icon ?? '📘', color: c?.color ?? '#94a3b8' }
+      })
+      .sort((a, b) => b.min - a.min)
+  }, [journals, month, courses])
   const tp = themeProps(theme)
 
   const runAI = async () => {
@@ -311,6 +330,31 @@ ${lines.join('\n')}`
             )}
           </section>
         </div>
+
+        {studyRows.length > 0 && (
+          <section>
+            <H>Học tập tháng này</H>
+            <ul className="grid gap-x-8 gap-y-1.5 sm:grid-cols-2">
+              {studyRows.map((r) => (
+                <li key={r.id}>
+                  <div className="flex justify-between gap-2 text-[0.95rem]">
+                    <span className="truncate">
+                      {r.icon} {r.name}
+                    </span>
+                    <b className="shrink-0 tabular">
+                      {fmtHM(r.min)} · {r.days} ngày{r.units ? ` · +${r.units}` : ''}
+                    </b>
+                  </div>
+                  <div className="mt-0.5 flex gap-[2px]">
+                    {m.days.map((d) => (
+                      <span key={d.date} className="h-1.5 flex-1 rounded-[1px]" style={{ background: r.dates.has(d.date) ? r.color : 'var(--muted)' }} />
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {m.wins.length > 0 && (
           <section>

@@ -4,7 +4,7 @@ import { addDays, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { BookOpen, CalendarRange, Check, ChevronLeft, ChevronRight, Columns2, Pencil, Plus, Square, Tags, Trash2, Type, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
+import { useCourses, useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
 import { createTask, updateTask, GOALS_ID, journalId, monthId, saveJournal, updateGoals, updateJournal } from '@/db/actions'
 import { DEFAULT_ROLE_ID } from '@/db/db'
 import type { Journal, JournalBlock, JournalBullet, TaskCategory } from '@/db/types'
@@ -16,10 +16,12 @@ import { fmtAmount, habitKind, habitUnit, isHabitDone, logValue } from '@/lib/ha
 import { habitActiveOn } from '@/lib/stats'
 import { cn, COLORS, dayKey, fromDayKey, minToHHMM, uid } from '@/lib/utils'
 import { saveCategories, taskCategory, useCategories } from '@/lib/categories'
+import { KIND_INFO, removeStudy } from '@/lib/learning'
 import { Dropdown, DropdownItem } from '@/components/ui/dropdown'
 import { useUI } from '@/stores/ui'
 import { tapHabit } from './Habits'
 import { MOOD } from '@/components/Ritual'
+import { AppIcon } from '@/components/AppIcon'
 import { ThemeDecor, ThemePicker, themeProps, useMonthTheme } from '@/components/BujoTheme'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -338,6 +340,8 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const projects = useProjects()
   const roles = useRoles()
   const categories = useCategories()
+  const courses = useCourses()
+  const openStudyLog = useUI((s) => s.openStudyLog)
   const habits = useHabits()
   const logs = useHabitLogs()
   const journals = useJournals()
@@ -395,7 +399,15 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
       else cur.add(id)
       return { goalsDone: [...cur] }
     })
-  const schedule = [...tl.planned].sort((a, b) => a.start - b.start)
+  // Lịch trình = what is really on the calendar: Google events, tasks you gave a time,
+  // and blocks you placed by hand. Auto-planned blocks already show in the checklist.
+  const schedule = tl.planned
+    .filter((s) => {
+      if (!s.taskId) return true
+      const t = tasks.find((x) => x.id === s.taskId)
+      return !!t && (!!t.pinned || (t.scheduledDate === date && !!t.scheduledTime))
+    })
+    .sort((a, b) => a.start - b.start)
   const d = fromDayKey(date)
 
   return (
@@ -502,13 +514,28 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                     </div>
                     <ul className="grid gap-[3px] pl-1">
                       {list.map(({ task, mark, time }) => (
-                        <li key={task.id} className="group flex items-center gap-2">
-                          <CheckBox mark={mark} color={cat.color} onClick={() => void completeTask(task)} />
-                          <button type="button" onClick={() => openTask(task.id)} className={cn('min-w-0 flex-1 text-left text-[0.95rem] leading-snug hover:text-primary', mark === '×' && 'text-muted-foreground line-through decoration-1')}>
-                            {top3.has(task.id) && <span className="mr-0.5 text-amber-500">★</span>}
-                            {task.title}
-                            {mark === '>' && <span className="ml-1.5 rounded bg-warning/15 px-1 text-[10px] text-warning no-underline">chưa xong</span>}
+                        <li key={task.id} className="group flex items-start gap-2">
+                          <span className="pt-[3px]">
+                            <CheckBox mark={mark} color={cat.color} onClick={() => void completeTask(task)} />
+                          </span>
+                          <button type="button" onClick={() => openTask(task.id)} className="min-w-0 flex-1 text-left leading-snug hover:text-primary">
+                            <span className={cn('text-[0.95rem]', mark === '×' && 'text-muted-foreground line-through decoration-1')}>
+                              {top3.has(task.id) && <span className="mr-0.5 text-amber-500">★</span>}
+                              {task.title}
+                            </span>
+                            {mark === '>' && <span className="ml-1.5 rounded bg-warning/15 px-1 text-[10px] text-warning">chưa xong</span>}
                             {mark === '△' && <span className="ml-1.5 rounded bg-sky-500/15 px-1 text-[10px] text-sky-600">đang làm</span>}
+                            {(() => {
+                              const pj = task.projectId ? projects.find((x) => x.id === task.projectId) : undefined
+                              return pj ? (
+                                <span className="mt-px flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground" title={pj.name}>
+                                  <AppIcon value={pj.icon ?? '📁'} size={11} style={{ color: pj.color }} />
+                                  <span className="truncate" style={{ color: pj.color }}>
+                                    {pj.name}
+                                  </span>
+                                </span>
+                              ) : null
+                            })()}
                           </button>
                           {time && <span className="shrink-0 text-[11px] text-muted-foreground tabular">{time}</span>}
                           <Dropdown
@@ -656,9 +683,51 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
           </section>
 
           <section>
+            <H
+              action={
+                !isFuture && (
+                  <button type="button" onClick={() => openStudyLog({ date })} className="no-print rounded-md border px-2 py-0.5 font-sans text-xs text-muted-foreground hover:bg-muted hover:text-foreground">
+                    + Ghi buổi học
+                  </button>
+                )
+              }
+            >
+              Học tập
+            </H>
+            {(journal?.studies ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">{courses.length ? 'Chưa ghi buổi học nào.' : 'Thêm khoá học / chứng chỉ ở trang Học tập.'}</p>
+            ) : (
+              <ul className="grid gap-1">
+                {journal!.studies!.map((st) => {
+                  const c = courses.find((x) => x.id === st.courseId)
+                  return (
+                    <li key={st.id} className="group flex items-start gap-2 text-[0.95rem]">
+                      <span className="shrink-0 leading-snug">{c?.icon ?? '📘'}</span>
+                      <span className="min-w-0 flex-1 leading-snug">
+                        <span className="font-medium" style={{ color: c?.color }}>
+                          {c?.name ?? 'Khoá học đã xoá'}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {' '}
+                          · {fmtHM(st.minutes)}
+                          {st.units ? ` · +${st.units} ${c?.unitLabel || KIND_INFO[c?.kind ?? 'course'].unit}` : ''}
+                        </span>
+                        {st.note && <span className="block text-xs text-muted-foreground">{st.note}</span>}
+                      </span>
+                      <button type="button" aria-label="Xoá buổi học" onClick={() => confirm('Xoá buổi học này?') && void removeStudy(date, st.id)} className="no-print opacity-0 group-hover:opacity-100">
+                        <X className="size-3.5 text-muted-foreground" />
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section>
             <H>Lịch trình</H>
             {schedule.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Không có lịch.</p>
+              <p className="text-sm text-muted-foreground">Không có sự kiện hay việc đặt giờ cố định.</p>
             ) : (
               <ul className="grid gap-0.5">
                 {schedule.map((s) => {
@@ -737,6 +806,12 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                     <b className="tabular">{fmtHM(r.min)}</b>
                   </li>
                 ))}
+                {(journal?.studies ?? []).length > 0 && (
+                  <li className="flex justify-between gap-2">
+                    <span>📘 Học khoá học</span>
+                    <b className="tabular">{fmtHM((journal?.studies ?? []).reduce((a, x) => a + x.minutes, 0))}</b>
+                  </li>
+                )}
                 <li className="mt-1 flex justify-between gap-2 border-t border-dashed pt-1">
                   <span>⏱ Tập trung</span>
                   <b className="tabular">{fmtHM(time.focus)}</b>

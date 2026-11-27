@@ -77,6 +77,9 @@ export function CommandPalette() {
           <Command.Item className={item} onSelect={() => run(() => nav('/journal/month'))}>
             <Sunset /> Tổng kết tháng (Bullet Journal)
           </Command.Item>
+          <Command.Item className={item} onSelect={() => run(() => useUI.getState().openStudyLog({ date: new Date().toLocaleDateString('sv-SE') }))}>
+            <Plus /> Ghi buổi học (khoá học / chứng chỉ)
+          </Command.Item>
           <Command.Item className={item} onSelect={() => run(() => useUI.getState().setTemplates(true))}>
             <LayoutTemplate /> Tạo project từ mẫu
           </Command.Item>

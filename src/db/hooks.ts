@@ -1,6 +1,6 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from './db'
-import type { Habit, HabitLog, Journal, Project, Role, Task, TimeEntry } from './types'
+import type { Course, Habit, HabitLog, Journal, Project, Role, Task, TimeEntry } from './types'
 
 const alive = <T extends { deleted: 0 | 1 }>(arr: T[]) => arr.filter((x) => !x.deleted)
 
@@ -41,4 +41,7 @@ export function useJournalRow(id: string): Journal | undefined | null {
     const j = await db.journal.get(id)
     return j && !j.deleted ? j : null
   }, [id])
+}
+export function useCourses(): Course[] {
+  return useLiveQuery(async () => alive(await db.courses.toArray()).sort((a, b) => a.order - b.order), []) ?? []
 }

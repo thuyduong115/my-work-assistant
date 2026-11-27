@@ -185,12 +185,53 @@ export interface Journal extends Base {
   win?: string
   note?: string
   eveningAt?: number
+  /** study sessions of the day */
+  studies?: StudyLog[]
   /** times the focus guard caught you leaving the tab */
   distractions?: number
 }
 
-export type TableName = 'roles' | 'projects' | 'tasks' | 'timeEntries' | 'habits' | 'habitLogs' | 'journal'
-export const TABLES: TableName[] = ['roles', 'projects', 'tasks', 'timeEntries', 'habits', 'habitLogs', 'journal']
+export type CourseKind = 'course' | 'cert' | 'book' | 'skill'
+export type CourseStatus = 'planned' | 'learning' | 'paused' | 'done'
+
+/** A course, certificate, book or skill you want to learn */
+export interface Course extends Base {
+  name: string
+  kind: CourseKind
+  status: CourseStatus
+  /** Coursera, Udemy, AWS, IELTS… */
+  provider?: string
+  url?: string
+  icon: string
+  color: string
+  /** progress counted in units (lessons, modules, chapters…) */
+  totalUnits?: number
+  doneUnits?: number
+  unitLabel?: string
+  /** finish by */
+  targetDate?: string
+  /** certificate exam day */
+  examDate?: string
+  notes?: string
+  /** link to the certificate once earned */
+  certUrl?: string
+  doneAt?: number
+  createdAt: number
+  order: number
+}
+
+/** One study session, stored in that day's journal row */
+export interface StudyLog {
+  id: string
+  courseId: string
+  minutes: number
+  /** lessons/modules finished in this session */
+  units?: number
+  note?: string
+}
+
+export type TableName = 'roles' | 'projects' | 'tasks' | 'timeEntries' | 'habits' | 'habitLogs' | 'journal' | 'courses'
+export const TABLES: TableName[] = ['roles', 'projects', 'tasks', 'timeEntries', 'habits', 'habitLogs', 'journal', 'courses']
 
 export const PRIORITY_LABEL: Record<Priority, string> = {
   low: 'Thấp',

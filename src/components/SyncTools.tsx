@@ -16,6 +16,7 @@ const LABEL: Record<TableName, string> = {
   habits: 'Thói quen',
   habitLogs: 'Nhật ký thói quen',
   journal: 'Nhật ký ngày',
+  courses: 'Khoá học / chứng chỉ',
 }
 
 /** Compare this device with the server and pull everything again if they differ */
@@ -92,7 +93,7 @@ export function SyncHealth() {
   )
 }
 
-const TRASH: TableName[] = ['roles', 'projects', 'tasks', 'habits']
+const TRASH: TableName[] = ['roles', 'projects', 'tasks', 'habits', 'courses']
 
 /** Soft-deleted items can be brought back (the restore syncs to other devices) */
 export function Trash() {

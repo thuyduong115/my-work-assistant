@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { Habit, HabitLog, Journal, Project, Role, Task, TimeEntry, TableName, Base } from './types'
+import type { Course, Habit, HabitLog, Journal, Project, Role, Task, TimeEntry, TableName, Base } from './types'
 
 export class AppDB extends Dexie {
   roles!: EntityTable<Role, 'id'>
@@ -9,6 +9,7 @@ export class AppDB extends Dexie {
   habits!: EntityTable<Habit, 'id'>
   habitLogs!: EntityTable<HabitLog, 'id'>
   journal!: EntityTable<Journal, 'id'>
+  courses!: EntityTable<Course, 'id'>
 
   constructor() {
     super('my-work-assistant')
@@ -21,6 +22,7 @@ export class AppDB extends Dexie {
       habitLogs: 'id, habitId, date, dirty, updatedAt',
     })
     this.version(2).stores({ journal: 'id, date, dirty, updatedAt' })
+    this.version(3).stores({ courses: 'id, status, dirty, updatedAt' })
   }
 }
 
@@ -45,6 +47,7 @@ interface Rows {
   habits: Habit
   habitLogs: HabitLog
   journal: Journal
+  courses: Course
 }
 type Row<T extends TableName> = Rows[T]
 
