@@ -93,7 +93,7 @@ function useWidth<T extends HTMLElement>() {
 }
 
 function SegRow({ segs, width, up, onPick }: { segs: Seg[]; width: number; up?: boolean; onPick: (s: Seg) => void }) {
-  const ls = lanes(segs, width)
+  const ls = lanes(segs)
   const n = Math.max(1, ...ls.map((l) => l + 1))
   const px = width / 1440
   return (
@@ -101,6 +101,9 @@ function SegRow({ segs, width, up, onPick }: { segs: Seg[]; width: number; up?: 
       {segs.map((s, i) => {
         const y = (up ? n - 1 - ls[i] : ls[i]) * LANE
         const w = Math.max(3, (s.end - s.start) * px)
+        // label once per row; near the right edge, anchor the block's label to its end
+        const showLabel = ls.indexOf(ls[i]) === i
+        const nearEnd = s.start * px > width - 170
         return (
           <button
             key={s.key}
@@ -110,10 +113,10 @@ function SegRow({ segs, width, up, onPick }: { segs: Seg[]; width: number; up?: 
               onPick(s)
             }}
             title={`${minToHHMM(s.start)}–${minToHHMM(s.end)} · ${s.label}`}
-            className="group absolute flex flex-col items-start text-left"
-            style={{ left: s.start * px, top: y, maxWidth: width - s.start * px }}
+            className={cn('group absolute flex flex-col text-left', nearEnd ? 'items-end' : 'items-start')}
+            style={nearEnd ? { right: Math.max(0, width - s.end * px), top: y } : { left: s.start * px, top: y, maxWidth: width - s.start * px }}
           >
-            {up && <span className="max-w-[160px] truncate text-[11px] leading-[14px] opacity-85 group-hover:opacity-100">{s.label}</span>}
+            {up && <span className={cn('max-w-[160px] truncate text-[11px] leading-[14px] opacity-85 group-hover:opacity-100', !showLabel && 'invisible')}>{s.label}</span>}
             <span
               className="relative block h-[7px] rounded-[2px]"
               style={{ width: w, background: s.planned ? 'transparent' : s.color, border: s.planned ? `1.5px dashed ${s.color}` : undefined }}
@@ -121,7 +124,7 @@ function SegRow({ segs, width, up, onPick }: { segs: Seg[]; width: number; up?: 
               <span className="absolute -top-[3px] left-0 h-[13px] w-[1.5px] rounded" style={{ background: s.color }} />
               <span className="absolute -top-[3px] right-0 h-[13px] w-[1.5px] rounded" style={{ background: s.color }} />
             </span>
-            {!up && <span className="max-w-[160px] truncate text-[11px] leading-[14px] opacity-85 group-hover:opacity-100">{s.label}</span>}
+            {!up && <span className={cn('max-w-[160px] truncate text-[11px] leading-[14px] opacity-85 group-hover:opacity-100', !showLabel && 'invisible')}>{s.label}</span>}
           </button>
         )
       })}

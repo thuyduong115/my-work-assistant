@@ -96,17 +96,17 @@ export function timeline(date: string, d: { tasks: Task[]; entries: TimeEntry[];
   return { planned: planned.sort(byStart), actual: actual.sort(byStart) }
 }
 
-/** Greedy lanes so labels under the line don't overlap (approx. width per character) */
-export function lanes(segs: Seg[], widthPx: number, charPx = 6) {
-  const pxPerMin = widthPx / 1440
-  const ends: number[] = []
+/**
+ * One row per activity, like a Gantt chart: segments with the same name (two sleep
+ * blocks, several sessions of one task) share a row; each new name gets its own row,
+ * in order of first appearance.
+ */
+export function lanes(segs: Seg[]) {
+  const rows = new Map<string, number>()
   return segs.map((s) => {
-    const x = s.start * pxPerMin
-    const w = Math.max((s.end - s.start) * pxPerMin, Math.min(s.label.length, 22) * charPx + 8)
-    let lane = ends.findIndex((e) => e <= x)
-    if (lane < 0) lane = ends.length
-    ends[lane] = x + w
-    return lane
+    const key = (s.taskId ? `t:${s.taskId}` : `l:${s.label.trim().toLowerCase()}`)
+    if (!rows.has(key)) rows.set(key, rows.size)
+    return rows.get(key)!
   })
 }
 
