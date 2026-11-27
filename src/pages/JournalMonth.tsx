@@ -5,7 +5,7 @@ import { vi } from 'date-fns/locale'
 import { BookOpen, ChevronLeft, ChevronRight, Loader2, Printer, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCourses, useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
-import { GOALS_ID, monthId, saveMonth } from '@/db/actions'
+import { monthId, saveMonth } from '@/db/actions'
 import { aiConfig, aiMonthlyReview } from '@/ai/ai'
 import { fmtHM, monthData } from '@/lib/bujo'
 import { isHabitDone, logValue } from '@/lib/habits'
@@ -58,7 +58,6 @@ export default function JournalMonth() {
   const roles = useRoles()
   const projects = useProjects()
   const row = useJournalRow(monthId(month))
-  const goalsRow = useJournalRow(GOALS_ID)
   const [busy, setBusy] = useState(false)
   const hand = (() => {
     try {
@@ -73,7 +72,6 @@ export default function JournalMonth() {
   const lead = (getDay(first) + 6) % 7
   const today = dayKey()
   const jBy = useMemo(() => new Map(journals.map((j) => [j.date, j])), [journals])
-  const goals = (goalsRow?.goals ?? []).filter((g) => !g.archived)
   const shift = (n: number) => setParams({ m: format(addMonths(first, n), 'yyyy-MM') })
   const maxFocus = Math.max(60, ...m.days.map((x) => x.focus))
   const save = (patch: Parameters<typeof saveMonth>[1]) => saveMonth(month, patch)
@@ -111,7 +109,7 @@ export default function JournalMonth() {
           return `${d.date}: điểm ${d.score ?? '-'}/10, ngủ ${fmtHM(d.sleep)}, tập trung ${fmtHM(d.focus)}, xong ${d.done} việc, thói quen ${d.habitsDone}/${d.habitsDue}${j?.win ? `, làm tốt: ${j.win}` : ''}${j?.note ? `, ghi chú: ${j.note.slice(0, 80)}` : ''}`
         })
       const summary = `Tháng ${month}. Tổng: ${t.done} việc xong, tập trung ${fmtHM(t.focus)}, điểm TB ${t.avgScore.toFixed(1)}/10, ngủ TB ${fmtHM(t.avgSleep)}, tỉ lệ thói quen ${Math.round(t.habitRate * 100)}%, ${t.journaled} ngày có ghi nhật ký.
-Mục tiêu dài hạn: ${goals.map((g) => `${g.name} (${m.days.filter((d) => jBy.get(d.date)?.goalsDone?.includes(g.id)).length} ngày)`).join('; ') || 'chưa đặt'}
+Học tập: ${studyRows.map((r) => `${r.name} ${fmtHM(r.min)} (${r.days} ngày)`).join('; ') || 'không ghi'}
 Thời gian theo project: ${m.projects.map((p) => `${p.name} ${fmtHM(p.min)}`).join('; ') || 'không có'}
 Từng ngày:
 ${lines.join('\n')}`
@@ -264,33 +262,7 @@ ${lines.join('\n')}`
           </section>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          <section>
-            <H>Mục tiêu dài hạn</H>
-            {goals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Đặt ở trang ngày → "Mục tiêu dài hạn".</p>
-            ) : (
-              <ul className="grid gap-2">
-                {goals.map((g) => {
-                  const on = m.days.filter((d) => jBy.get(d.date)?.goalsDone?.includes(g.id))
-                  return (
-                    <li key={g.id}>
-                      <div className="flex justify-between text-[0.95rem]">
-                        <span>{g.name}</span>
-                        <b className="tabular">{on.length} ngày</b>
-                      </div>
-                      <div className="mt-0.5 flex gap-[2px]">
-                        {m.days.map((d) => (
-                          <span key={d.date} className={cn('h-2 flex-1 rounded-[1px]', on.includes(d) ? 'bujo-fill' : 'bg-muted')} />
-                        ))}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </section>
-
+        <div className="grid gap-6 lg:grid-cols-2">
           <section>
             <H>Thời gian đi đâu</H>
             {m.projects.length === 0 ? (

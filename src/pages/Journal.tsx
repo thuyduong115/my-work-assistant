@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { addDays, format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { BookOpen, CalendarRange, Check, ChevronLeft, ChevronRight, Columns2, Pencil, Plus, Square, Tags, Trash2, Type, X } from 'lucide-react'
+import { BookOpen, CalendarRange, Check, ChevronLeft, ChevronRight, Columns2, Plus, Square, Tags, Trash2, Type, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCourses, useHabitLogs, useHabits, useJournalRow, useJournals, useProjects, useRoles, useTasks, useTimeEntries } from '@/db/hooks'
-import { createTask, updateTask, GOALS_ID, journalId, monthId, saveJournal, updateGoals, updateJournal } from '@/db/actions'
+import { createTask, updateTask, journalId, monthId, saveJournal, updateJournal } from '@/db/actions'
 import { DEFAULT_ROLE_ID } from '@/db/db'
 import type { Journal, JournalBlock, JournalBullet, TaskCategory } from '@/db/types'
 import { useGCal } from '@/gcal/gcal'
@@ -57,14 +57,6 @@ function H({ children, action }: { children: ReactNode; action?: ReactNode }) {
       <h3 className="bujo-h text-[1.15rem] leading-none font-bold">{children}</h3>
       {action}
     </div>
-  )
-}
-
-function IconBtn({ onClick, label, children }: { onClick: () => void; label: string; children: ReactNode }) {
-  return (
-    <button type="button" onClick={onClick} aria-label={label} title={label} className="no-print rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground [&_svg]:size-3.5">
-      {children}
-    </button>
   )
 }
 
@@ -346,14 +338,11 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const logs = useHabitLogs()
   const journals = useJournals()
   const journal = useJournalRow(journalId(date))
-  const goalsRow = useJournalRow(GOALS_ID)
   const events = useGCal((s) => s.events)
   const openTask = useUI((s) => s.openTask)
   const today = dayKey()
   const isFuture = date > today
   const [blockEdit, setBlockEdit] = useState<{ block?: JournalBlock; start?: number } | null>(null)
-  const [editGoals, setEditGoals] = useState(false)
-  const [newGoal, setNewGoal] = useState('')
   const [quick, setQuick] = useState('')
   const [adding, setAdding] = useState<string | null>(null)
   const [addText, setAddText] = useState('')
@@ -362,7 +351,6 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const tl = useMemo(() => timeline(date, { tasks, entries, projects, roles, events: ownEvents, journal }), [date, tasks, entries, projects, roles, ownEvents, journal])
   const items = useMemo(() => dayTasks(date, tasks, today), [date, tasks, today])
   const time = useMemo(() => dayTime(date, { tasks, entries, roles, journal, categories }), [date, tasks, entries, roles, journal, categories])
-  const goals = (goalsRow?.goals ?? []).filter((g) => !g.archived)
   const dayHabits = habits.filter((h) => !h.archived && habitActiveOn(h, date))
   const pageNo = journals.filter((j) => j.date <= date).length + (journal ? 0 : 1)
   const top3 = new Set(journal?.top3 ?? [])
@@ -392,13 +380,6 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
     } else await addTask(undefined, t)
     setQuick('')
   }
-  const toggleGoal = (id: string) =>
-    void updateJournal(date, (j) => {
-      const cur = new Set(j?.goalsDone ?? [])
-      if (cur.has(id)) cur.delete(id)
-      else cur.add(id)
-      return { goalsDone: [...cur] }
-    })
   // Lịch trình = what is really on the calendar: Google events, tasks you gave a time,
   // and blocks you placed by hand. Auto-planned blocks already show in the checklist.
   const schedule = tl.planned
@@ -633,55 +614,6 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
 
         {/* right column */}
         <div className="grid content-start gap-5">
-          <section>
-            <H action={<IconBtn label="Sửa danh sách mục tiêu" onClick={() => setEditGoals(!editGoals)}>{editGoals ? <X /> : <Pencil />}</IconBtn>}>Mục tiêu dài hạn</H>
-            {editGoals ? (
-              <div className="grid gap-1.5">
-                {goals.map((g) => (
-                  <div key={g.id} className="flex items-center gap-2">
-                    <LineInput value={g.name} onSave={(name) => name && void updateGoals((gs) => gs.map((x) => (x.id === g.id ? { ...x, name } : x)))} className="text-[0.95rem]" />
-                    <IconBtn label="Bỏ mục tiêu" onClick={() => void updateGoals((gs) => gs.map((x) => (x.id === g.id ? { ...x, archived: true } : x)))}>
-                      <Trash2 />
-                    </IconBtn>
-                  </div>
-                ))}
-                <form
-                  className="flex gap-2"
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    if (!newGoal.trim()) return
-                    const name = newGoal.trim()
-                    void updateGoals((gs) => [...gs, { id: uid(), name }])
-                    setNewGoal('')
-                  }}
-                >
-                  <Input value={newGoal} onChange={(e) => setNewGoal(e.target.value)} placeholder="VD: AI – viết NCKH, Ngoại ngữ (Hàn/Trung), BA" className="h-8 text-sm" />
-                  <Button size="sm" type="submit">
-                    Thêm
-                  </Button>
-                </form>
-              </div>
-            ) : goals.length === 0 ? (
-              <button type="button" onClick={() => setEditGoals(true)} className="text-sm text-muted-foreground hover:text-primary">
-                + Thêm mục tiêu dài hạn (tick những ngày bạn có làm)
-              </button>
-            ) : (
-              <ul className="grid gap-1">
-                {goals.map((g) => {
-                  const on = journal?.goalsDone?.includes(g.id)
-                  return (
-                    <li key={g.id}>
-                      <button type="button" disabled={isFuture} onClick={() => toggleGoal(g.id)} className="flex items-center gap-2 text-left text-[0.95rem]">
-                        <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border-[1.5px] text-[10px]', on ? 'bujo-fill' : 'border-foreground/50')}>{on ? '✓' : ''}</span>
-                        {g.name}
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            )}
-          </section>
-
           <section>
             <H
               action={
