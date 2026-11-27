@@ -315,6 +315,19 @@ function HabitDialog({ habit, onClose, count }: { habit?: Habit; onClose: () => 
               <Trash2 /> Xoá
             </Button>
           )}
+          {habit && !habit.archived && (
+            <Button
+              variant="ghost"
+              onClick={async () => {
+                await put('habits', { id: habit.id, archived: true })
+                toast('Đã tạm cất thói quen', { description: 'Bật lại ở mục "Thói quen tiếp theo" cuối trang.' })
+                onClose()
+              }}
+              title="Tạm dừng, giữ lịch sử — bật lại khi sẵn sàng"
+            >
+              Tạm cất
+            </Button>
+          )}
           <Button onClick={save}>Lưu</Button>
         </>
       }
@@ -425,8 +438,47 @@ function HabitDialog({ habit, onClose, count }: { habit?: Habit; onClose: () => 
   )
 }
 
+/** Habits waiting their turn: start one when the current ones feel automatic */
+function NextHabits({ habits, active }: { habits: Habit[]; active: number }) {
+  if (!habits.length) return null
+  return (
+    <Card className="mt-6">
+      <CardHeader
+        title={`Thói quen tiếp theo (${habits.length})`}
+        icon={<Repeat2 />}
+        description={
+          active >= 3
+            ? 'Xây từ từ: khi 3 thói quen hiện tại thành tự nhiên (khoảng 2–3 tuần giữ chuỗi), hãy bắt đầu thêm 1 thói quen.'
+            : 'Bấm "Bắt đầu tập" để thêm một thói quen vào danh sách đang tập.'
+        }
+      />
+      <CardBody className="grid gap-2 sm:grid-cols-2">
+        {habits.map((h) => (
+          <div key={h.id} className="flex items-center gap-3 rounded-lg border px-3 py-2">
+            <span className="grid size-8 shrink-0 place-items-center rounded-lg" style={{ background: `color-mix(in oklch, ${h.color} 14%, transparent)` }}>
+              <AppIcon value={h.icon} size={16} />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm">{h.name}</span>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={async () => {
+                await put('habits', { id: h.id, archived: false, createdAt: Date.now() })
+                toast.success(`Bắt đầu tập: ${h.name}`)
+              }}
+            >
+              Bắt đầu tập
+            </Button>
+          </div>
+        ))}
+      </CardBody>
+    </Card>
+  )
+}
+
 export default function Habits() {
-  const habits = useHabits().filter((h) => !h.archived)
+  const all = useHabits()
+  const habits = all.filter((h) => !h.archived)
   const logs = useHabitLogs()
   const [edit, setEdit] = useState<{ habit?: Habit } | null>(null)
   const [logFor, setLogFor] = useState<{ id: string; date: string } | null>(null)
@@ -558,6 +610,7 @@ export default function Habits() {
           })}
         </div>
       )}
+      <NextHabits habits={all.filter((h) => h.archived)} active={habits.length} />
       {edit && <HabitDialog key={edit.habit?.id ?? 'new'} habit={edit.habit} count={habits.length} onClose={() => setEdit(null)} />}
       {logFor && logHabit && <LogDialog h={logHabit} date={logFor.date} logs={logs} onClose={() => setLogFor(null)} />}
     </div>
