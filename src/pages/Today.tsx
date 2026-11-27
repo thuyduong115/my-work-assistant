@@ -269,8 +269,8 @@ export default function Today() {
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
-        <div className="grid content-start gap-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid min-w-0 content-start gap-5 [&>*]:min-w-0">
           {v.overdue.length > 0 && (
             <Card className="border-destructive/30">
               <CardHeader title={`Quá hạn (${v.overdue.length})`} icon={<AlertTriangle className="!text-destructive" />} description="Làm ngay, chia nhỏ, hoặc đặt deadline mới thực tế hơn." />
@@ -354,7 +354,7 @@ export default function Today() {
           )}
         </div>
 
-        <div className="grid content-start gap-5">
+        <div className="grid min-w-0 content-start gap-5 [&>*]:min-w-0">
           <FocusCard />
           <GcalToday />
           <AITop3 tasks={all} />
@@ -377,13 +377,13 @@ function ProjectsMini() {
           const ts = tasks.filter((t) => t.projectId === p.id)
           const done = ts.filter((t) => t.status === 'done').length
           return (
-            <Link key={p.id} to={`/projects/${p.id}`} className="group">
-              <div className="mb-1 flex items-center justify-between text-sm">
-                <span className="truncate font-medium group-hover:text-primary">
+            <Link key={p.id} to={`/projects/${p.id}`} className="group block min-w-0">
+              <div className="mb-1 flex items-center justify-between gap-2 text-sm">
+                <span className="min-w-0 truncate font-medium group-hover:text-primary">
                   <AppIcon value={p.icon} size={14} className="mr-1 align-[-2px]" style={{ color: p.color }} />
                   {p.name}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="shrink-0 text-xs text-muted-foreground">
                   {done}/{ts.length}
                 </span>
               </div>

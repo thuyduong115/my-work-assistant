@@ -43,7 +43,7 @@ export default function Focus() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[1fr_340px]">
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
       <Card className="flex flex-col items-center gap-5 px-4 py-8">
         <Segmented
           value={v.mode}
