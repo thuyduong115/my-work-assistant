@@ -39,6 +39,14 @@ export function getClient() {
 
 const cursorKey = (uid: string) => `mwa-sync-cursor-${uid}`
 const STRIP = new Set(['id', 'updatedAt', 'deleted', 'dirty'])
+const ACCOUNT_KEY = 'mwa-sync-account'
+
+/** Queue every local row for upload (e.g. after moving to a new Supabase project) */
+export async function markAllDirty() {
+  await db.transaction('rw', TABLES.map((t) => db[t]), async () => {
+    for (const t of TABLES) await table(t).toCollection().modify({ dirty: 1 })
+  })
+}
 
 const UNREACHABLE =
   'Không kết nối được Supabase. Thường là project đang bị tạm dừng (gói Free tự dừng sau 7 ngày không dùng) hoặc đã bị xoá: vào supabase.com/dashboard → mở project → "Restore project". Nếu không còn project, tạo project mới và dán URL / anon key mới vào đây — dữ liệu trên máy vẫn còn.'
@@ -75,6 +83,13 @@ async function doSync() {
   const userId = session.user.id
   useSync.setState({ status: 'syncing', error: undefined })
   try {
+    // New account or new Supabase project: offer everything on this device again.
+    // (Done before the pull, so rows the server has in a newer version still win.)
+    const account = `${useSettings.getState().supabase.url.trim()}|${userId}`
+    if (localStorage.getItem(ACCOUNT_KEY) !== account) {
+      await markAllDirty()
+      localStorage.setItem(ACCOUNT_KEY, account)
+    }
     // ---- pull
     const cursor = localStorage.getItem(cursorKey(userId))
     const since = cursor ? new Date(new Date(cursor).getTime() - 60_000).toISOString() : '1970-01-01T00:00:00Z'
@@ -262,6 +277,8 @@ export async function localCounts(): Promise<Counts> {
 export async function fullResync() {
   const s = useSync.getState().session
   if (s) localStorage.removeItem(cursorKey(s.user.id))
+  // also offer everything on this device; rows the server has in a newer version still win
+  await markAllDirty()
   await syncNow()
 }
 

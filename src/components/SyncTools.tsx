@@ -36,7 +36,7 @@ export function SyncHealth() {
     setBusy(true)
     try {
       await fullResync()
-      toast.success('Đã tải lại toàn bộ từ máy chủ')
+      toast.success('Đã đồng bộ lại toàn bộ')
       setRes({ local: await localCounts(), server: await serverCounts() })
     } catch (e) {
       toast.error((e as Error).message)
@@ -49,13 +49,13 @@ export function SyncHealth() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-0 flex-1 text-sm">
           <div className="font-medium">Kiểm tra đồng bộ</div>
-          <div className="text-xs text-muted-foreground">So sánh dữ liệu trên máy này với máy chủ. Nếu lệch: bấm "Tải lại toàn bộ".</div>
+          <div className="text-xs text-muted-foreground">So sánh dữ liệu trên máy này với máy chủ. Nếu lệch: bấm "Đồng bộ lại toàn bộ" (tải về những gì máy chủ có và đẩy lên những gì máy này có — bản mới hơn được giữ).</div>
         </div>
         <Button size="sm" variant="outline" onClick={check} disabled={busy}>
           {busy ? <Loader2 className="animate-spin" /> : <Stethoscope />} Kiểm tra
         </Button>
         <Button size="sm" variant="outline" onClick={resync} disabled={busy}>
-          <RotateCcw /> Tải lại toàn bộ
+          <RotateCcw /> Đồng bộ lại toàn bộ
         </Button>
       </div>
       {res && (
