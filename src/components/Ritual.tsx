@@ -399,7 +399,7 @@ export function RitualBanner() {
   const isMorning = nowMin >= mh * 60 + mm - 120
   if (isEvening && !j?.eveningAt)
     return (
-      <button onClick={() => openRitual('evening')} className="flex items-center gap-3 rounded-xl border border-indigo-400/40 bg-gradient-to-r from-indigo-500/15 to-violet-500/10 p-3 text-left transition hover:border-indigo-400">
+      <button onClick={() => openRitual('evening')} className="flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition hover:border-indigo-400/60">
         <Moon className="size-5 shrink-0 text-indigo-400" />
         <span className="flex-1 text-sm">
           <b>Tổng kết ngày</b> <span className="text-muted-foreground">— tick việc đã xong, dời việc còn lại, ghi lại hôm nay thế nào (1 phút)</span>
@@ -409,7 +409,7 @@ export function RitualBanner() {
     )
   if (!isEvening && isMorning && !j?.morningAt)
     return (
-      <button onClick={() => openRitual('morning')} className="flex items-center gap-3 rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-400/15 to-orange-400/10 p-3 text-left transition hover:border-amber-400">
+      <button onClick={() => openRitual('morning')} className="flex items-center gap-3 rounded-xl border bg-card p-3 text-left transition hover:border-amber-400/70">
         <Sun className="size-5 shrink-0 text-amber-500" />
         <span className="flex-1 text-sm">
           <b>Bắt đầu ngày mới</b> <span className="text-muted-foreground">— dọn việc tồn, chọn 3 việc chính, ghi năng lượng (1 phút)</span>

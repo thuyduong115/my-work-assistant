@@ -78,7 +78,9 @@ export function openTarget(t: NotifyTarget) {
 
 function remind(title: string, body: string, tag: string, target?: NotifyTarget, action?: { label: string; onClick: () => void }) {
   void showNotification(title, body, { tag, target })
-  if (document.visibilityState === 'visible')
+  // the Today page already shows a banner for the daily rituals
+  const onToday = /^#?\/?$/.test(location.hash.replace(/\?.*/, ''))
+  if (document.visibilityState === 'visible' && !(target?.kind === 'ritual' && onToday))
     toast(title, { description: body, duration: 15_000, action: action ?? (target ? { label: 'Mở', onClick: () => openTarget(target) } : undefined) })
 }
 

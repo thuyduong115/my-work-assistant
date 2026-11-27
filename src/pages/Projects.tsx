@@ -66,7 +66,7 @@ export default function Projects() {
             const dl = p.deadline ? deadlineInfo({ deadline: p.deadline, status: p.status === 'done' ? 'done' : 'todo' } as never) : null
             return (
               <Link key={p.id} to={`/projects/${p.id}`} className="group">
-                <Card className="relative h-full overflow-hidden p-5 transition group-hover:-translate-y-0.5 group-hover:shadow-lg">
+                <Card className="relative h-full overflow-hidden p-5 transition group-hover:border-foreground/20">
                   <div className="absolute inset-x-0 top-0 h-1" style={{ background: p.color }} />
                   <div className="flex items-start gap-3">
                     <span className="grid size-11 place-items-center rounded-xl text-2xl" style={{ background: `color-mix(in oklch, ${p.color} 16%, transparent)`, color: p.color }}>

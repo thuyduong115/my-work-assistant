@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, Flame, Loader2, Plus, Sparkles, Sun, Target, Timer as TimerIcon, Wand2, RotateCcw } from 'lucide-react'
+import { AlertTriangle, CalendarClock, CheckCircle2, ChevronDown, Clock, Flame, Loader2, Plus, Sparkles, Target, Timer as TimerIcon, Wand2, RotateCcw } from 'lucide-react'
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
 import { toast } from 'sonner'
@@ -236,17 +236,10 @@ export default function Today() {
 
   return (
     <div className="grid gap-5">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="text-sm font-medium text-primary capitalize">{format(new Date(), 'EEEE, dd MMMM yyyy', { locale: vi })}</p>
-          <h1 className="mt-0.5 flex items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
-            {greeting()} <Sun className="size-6 text-amber-400" />
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">{quote}</p>
-        </div>
-        <Button onClick={() => openCapture()} size="lg" className="hidden sm:inline-flex">
-          <Sparkles /> Nhập việc — AI tách giúp
-        </Button>
+      <div>
+        <p className="text-sm text-muted-foreground capitalize">{format(new Date(), 'EEEE, dd MMMM', { locale: vi })}</p>
+        <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-[1.75rem]">{greeting()}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{quote}</p>
       </div>
 
       <RitualBanner />
@@ -254,10 +247,10 @@ export default function Today() {
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Hôm nay" value={`${doneCount}/${totalToday}`} sub={<Progress value={totalToday ? doneCount / totalToday : 0} className="mt-1.5 h-1.5" />} icon={<CheckCircle2 />} />
         <Link to="/dashboard">
-          <Stat label="Quá hạn" value={v.overdue.length} sub={v.overdue.length ? 'Xử lý ngay nhé!' : 'Không có 🎉'} icon={<AlertTriangle />} color={v.overdue.length ? '#ef4444' : '#22c55e'} className={v.overdue.length ? 'border-destructive/40' : ''} />
+          <Stat label="Quá hạn" value={v.overdue.length} sub={v.overdue.length ? 'Xử lý ngay' : 'Không có việc trễ'} icon={<AlertTriangle />} tone={v.overdue.length ? 'danger' : undefined} className={v.overdue.length ? 'border-destructive/40' : ''} />
         </Link>
         <Stat label="Tập trung" value={fmtMin(focusToday)} sub={<Progress value={focusToday / goal} className="mt-1.5 h-1.5" color="#14b8a6" />} icon={<Clock />} color="#14b8a6" />
-        <Stat label="Chuỗi ngày" value={`${st} 🔥`} sub={st ? 'Giữ lửa hôm nay nhé!' : 'Hoàn thành 1 task để bắt đầu'} icon={<Flame />} color="#f97316" />
+        <Stat label="Chuỗi ngày" value={`${st} ngày`} sub={st ? 'Giữ lửa hôm nay nhé!' : 'Hoàn thành 1 task để bắt đầu'} icon={<Flame />} color="#f97316" />
       </div>
 
       {riskTasks.length > 0 && (

@@ -174,11 +174,11 @@ export default function Dashboard() {
       <PageHeader title="Dashboard" subtitle="Nhìn thẳng vào sự thật — để không trì hoãn nữa." />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
-        <Stat label="Quá hạn" value={d.overdue.length} icon={<AlertTriangle />} color={d.overdue.length ? '#ef4444' : '#22c55e'} sub={d.overdue.length ? 'cần xử lý' : 'sạch sẽ ✨'} />
+        <Stat label="Quá hạn" value={d.overdue.length} icon={<AlertTriangle />} tone={d.overdue.length ? 'danger' : undefined} sub={d.overdue.length ? 'cần xử lý' : 'không có'} />
         <Stat label="Đến hạn hôm nay" value={d.dueToday} icon={<CalendarCheck />} color="#f97316" />
         <Stat label="Xong 7 ngày" value={d.doneWeek} icon={<CheckCircle2 />} color="#22c55e" />
         <Stat label="Tập trung 7 ngày" value={fmtMin(d.focusWeek)} icon={<Clock />} color={C_B} sub={`TB ${fmtMin(d.focusWeek / 7)}/ngày`} />
-        <Stat label="Chuỗi ngày" value={`${d.streak} 🔥`} icon={<Trophy />} color="#eab308" sub={`kỷ lục ${d.best} ngày`} />
+        <Stat label="Chuỗi ngày" value={`${d.streak} ngày`} icon={<Trophy />} color="#eab308" sub={`kỷ lục ${d.best} ngày`} />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">

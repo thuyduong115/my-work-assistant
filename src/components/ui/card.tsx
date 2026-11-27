@@ -2,7 +2,7 @@ import type { HTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
 export function Card({ className, ...p }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('rounded-xl border bg-card text-card-foreground shadow-xs', className)} {...p} />
+  return <div className={cn('rounded-xl border bg-card text-card-foreground', className)} {...p} />
 }
 
 export function CardHeader({
@@ -21,7 +21,7 @@ export function CardHeader({
   return (
     <div className={cn('flex items-start justify-between gap-3 px-5 pt-4 pb-2', className)}>
       <div className="min-w-0">
-        <h3 className="flex items-center gap-2 text-sm font-semibold [&_svg]:size-4 [&_svg]:text-primary">
+        <h3 className="flex items-center gap-2 text-sm font-semibold [&_svg]:size-4 [&_svg]:text-muted-foreground">
           {icon}
           {title}
         </h3>

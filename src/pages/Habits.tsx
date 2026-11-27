@@ -198,14 +198,14 @@ function HabitActions({ h, logs, onOpen }: { h: Habit; logs: HabitLog[]; onOpen:
   const ok = isHabitDone(h, v)
   if (habitKind(h) === 'check')
     return (
-      <Button size="sm" variant={ok ? 'soft' : 'default'} onClick={() => void tapHabit(h, logs)} style={ok ? undefined : { background: h.color }}>
-        <Check /> {ok ? 'Đã xong' : 'Xong hôm nay'}
+      <Button size="sm" variant={ok ? 'soft' : 'outline'} onClick={() => void tapHabit(h, logs)}>
+        <Check style={ok ? undefined : { color: h.color }} /> {ok ? 'Đã xong' : 'Xong hôm nay'}
       </Button>
     )
   return (
     <div className="flex items-center gap-1">
-      <Button size="sm" onClick={() => void tapHabit(h, logs)} style={{ background: h.color }} title="Cộng cho hôm nay">
-        <Plus /> {fmtAmount(habitStep(h), habitUnit(h))}
+      <Button size="sm" variant="outline" onClick={() => void tapHabit(h, logs)} title="Cộng cho hôm nay">
+        <Plus style={{ color: h.color }} /> {fmtAmount(habitStep(h), habitUnit(h))}
       </Button>
       <Button size="sm" variant="outline" onClick={onOpen} title="Nhập số tuỳ ý">
         Nhập

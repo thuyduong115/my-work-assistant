@@ -96,21 +96,17 @@ export function PageHeader({ title, subtitle, actions, icon }: { title: ReactNod
   )
 }
 
-export function Stat({ label, value, sub, icon, color, className }: { label: string; value: ReactNode; sub?: ReactNode; icon?: ReactNode; color?: string; className?: string }) {
+/** Numbers stay neutral; only `tone="danger"` (e.g. overdue > 0) gets colour. `color` is accepted for old call sites and ignored. */
+export function Stat({ label, value, sub, icon, tone, className }: { label: string; value: ReactNode; sub?: ReactNode; icon?: ReactNode; color?: string; tone?: 'danger'; className?: string }) {
   return (
-    <div className={cn('rounded-xl border bg-card p-4', className)}>
-      <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+    <div className={cn('rounded-xl border bg-card px-4 py-3.5', className)}>
+      <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground [&_svg]:size-3.5">
+        {icon}
         {label}
-        {icon && (
-          <span
-            className="grid size-7 place-items-center rounded-lg [&_svg]:size-4"
-            style={{ background: `color-mix(in oklch, ${color ?? 'var(--primary)'} 15%, transparent)`, color: color ?? 'var(--primary)' }}
-          >
-            {icon}
-          </span>
-        )}
       </div>
-      <div className="tabular mt-1.5 text-2xl font-bold tracking-tight">{value}</div>
+      <div className={cn('tabular mt-1 text-2xl font-semibold tracking-tight', tone === 'danger' && 'text-destructive')}>
+        {value}
+      </div>
       {sub && <div className="mt-0.5 text-xs text-muted-foreground">{sub}</div>}
     </div>
   )

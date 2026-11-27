@@ -267,7 +267,7 @@ export default function ProjectDetail() {
       </div>
 
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Tiến độ" value={`${tasks.length ? Math.round((done / tasks.length) * 100) : 0}%`} sub={<Progress value={tasks.length ? done / tasks.length : 0} color={project.color} className="mt-1.5 h-1.5" />} />
+        <Stat label="Tiến độ" value={`${tasks.length ? Math.round((done / tasks.length) * 100) : 0}%`} sub={<Progress value={tasks.length ? done / tasks.length : 0} className="mt-1.5 h-1.5" />} />
         <Stat label="Task" value={`${done}/${tasks.length}`} sub="hoàn thành" />
         <Stat label="Còn lại" value={fmtMin(remaining)} sub="theo ước lượng" icon={<Clock />} />
         <Stat label="Đã làm" value={fmtMin(spent)} sub="thời gian thực tế" icon={<Timer />} color="#14b8a6" />

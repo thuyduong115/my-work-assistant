@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bot, Loader2, MessageCircle, Plus, Send, Trash2, X, Check } from 'lucide-react'
+import { Bot, Loader2, Plus, Send, Trash2, X, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useHabitLogs, useHabits, useProjects, useTasks } from '@/db/hooks'
 import { createTask } from '@/db/actions'
@@ -105,20 +105,10 @@ export function ChatAssistant() {
 
   return (
     <>
-      {!chatOpen && (
-        <button
-          onClick={() => setChat(true)}
-          className="fixed right-4 bottom-36 z-30 grid size-12 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-white shadow-lg shadow-primary/30 transition hover:scale-105 active:scale-95 sm:bottom-6 sm:size-14"
-          aria-label="Chat với trợ lý AI"
-          title="Chat với trợ lý AI"
-        >
-          <MessageCircle className="size-6" />
-        </button>
-      )}
       {chatOpen && (
         <div className="animate-pop fixed inset-x-2 bottom-2 z-40 flex h-[min(75dvh,600px)] flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl sm:inset-x-auto sm:right-6 sm:bottom-6 sm:w-[400px]">
-          <div className="flex items-center gap-2 border-b bg-gradient-to-r from-violet-500/15 to-pink-500/15 px-4 py-3">
-            <span className="grid size-8 place-items-center rounded-full bg-gradient-to-br from-violet-500 to-pink-500 text-white">
+          <div className="flex items-center gap-2 border-b px-4 py-3">
+            <span className="grid size-8 place-items-center rounded-full bg-primary-soft text-primary">
               <Bot className="size-4" />
             </span>
             <div className="flex-1 leading-tight">

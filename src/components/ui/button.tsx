@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils'
 
 const variants = {
-  default: 'bg-primary text-primary-foreground hover:opacity-90 shadow-sm shadow-primary/20',
+  default: 'bg-primary text-primary-foreground hover:opacity-90',
   secondary: 'bg-muted text-foreground hover:bg-muted/70',
   outline: 'border bg-card hover:bg-muted',
   ghost: 'hover:bg-muted',

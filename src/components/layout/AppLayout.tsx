@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Cloud, CloudOff, Flame, Loader2, Menu, Monitor, Moon, Plus, Search, Sparkles, Sun, X, AlertCircle } from 'lucide-react'
+import { Cloud, CloudOff, Flame, Loader2, Menu, MessageCircle, Monitor, Moon, Plus, Search, Sparkles, Sun, X, AlertCircle } from 'lucide-react'
 import { useHabitLogs, useProjects, useTasks, useTimeEntries } from '@/db/hooks'
 import { activityByDay, level, streak, xpTotal } from '@/lib/stats'
 import { cn } from '@/lib/utils'
@@ -54,20 +54,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="size-8" />
         <div className="leading-tight">
           <div className="text-sm font-bold">Work Assistant</div>
-          <div className="text-[11px] text-muted-foreground">Trợ lý cá nhân của bạn</div>
+          
         </div>
-      </div>
-
-      <div className="rounded-xl border bg-card p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm font-semibold">
-            <Flame className={cn('size-4', st.streak ? 'text-orange-500' : 'text-muted-foreground')} />
-            {st.streak} ngày
-          </div>
-          <div className="text-xs font-semibold text-primary">Lv {st.lv}</div>
-        </div>
-        <Progress value={st.progress} className="mt-2 h-1.5" />
-        <div className="mt-1 text-[11px] text-muted-foreground">{st.xp} XP · còn {st.toNext} XP lên cấp</div>
       </div>
 
       <nav className="flex-1 space-y-4 overflow-y-auto">
@@ -82,8 +70,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 onClick={onNavigate}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm font-medium transition [&_svg]:size-4',
-                    isActive ? 'bg-primary-soft text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    'flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition [&_svg]:size-4',
+                    isActive ? 'bg-card font-medium text-foreground shadow-[0_0_0_1px_var(--border)] [&_svg]:text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )
                 }
               >
@@ -110,7 +98,15 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="px-2">
+      <div className="grid gap-2 border-t px-2 pt-3">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground" title={`${st.xp} XP · còn ${st.toNext} XP lên cấp ${st.lv + 1}`}>
+          <Flame className={cn('size-3.5', st.streak ? 'text-orange-500' : '')} />
+          <span>
+            <b className="font-semibold text-foreground tabular">{st.streak}</b> ngày liên tiếp
+          </span>
+          <span className="ml-auto tabular">Lv {st.lv}</span>
+        </div>
+        <Progress value={st.progress} className="h-1" />
         <SyncBadge />
       </div>
     </div>
@@ -199,6 +195,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <TimerChip />
             <MiniButton />
             <ThemeMenu />
+            <Button variant="ghost" size="icon" onClick={() => useUI.getState().setChat(true)} aria-label="Chat với trợ lý AI" title="Trợ lý AI">
+              <MessageCircle />
+            </Button>
             <Button onClick={() => openCapture()} className="hidden sm:inline-flex">
               <Sparkles /> Nhập nhanh
             </Button>
@@ -209,7 +208,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <button
         onClick={() => openCapture()}
-        className="fixed right-4 bottom-20 z-30 grid size-14 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition active:scale-95 sm:hidden"
+        className="fixed right-4 bottom-20 z-30 grid size-13 place-items-center rounded-full bg-primary text-primary-foreground shadow-md transition active:scale-95 sm:hidden"
         aria-label="Nhập nhanh"
       >
         <Plus className="size-6" />
