@@ -642,6 +642,7 @@ export default function Settings() {
             ['A', 'Thêm task thủ công'],
             ['T / I / C', 'Hôm nay / Inbox / Lịch'],
             ['F / H', 'Tập trung / Thói quen'],
+            ['J / L', 'Bullet Journal / Học tập'],
             ['P / R / M / D', 'Projects / Vai trò / Ma trận / Dashboard'],
             ['Ctrl + Enter', 'Lưu trong form'],
           ].map(([k, v]) => (
