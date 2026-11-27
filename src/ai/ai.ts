@@ -318,3 +318,12 @@ Quy tắc:
     }))
   return { role: 'assistant', text: r?.reply?.trim() || '…', tasks }
 }
+
+export async function aiMonthlyReview(summary: string): Promise<string> {
+  const system = `Bạn là coach năng suất cá nhân, đọc nhật ký bullet journal cả tháng của người dùng. Viết tổng kết tháng bằng tiếng Việt (markdown đơn giản, ≤ 220 từ):
+1) Điểm sáng của tháng (dựa trên số liệu và "điều làm tốt"),
+2) Khuôn mẫu đáng chú ý (giấc ngủ, ngày điểm cao/thấp, thói quen, trì hoãn),
+3) 3 mục tiêu cụ thể cho tháng sau.
+Giọng ấm áp, thẳng thắn, nhắc đúng con số.`
+  return call(system, summary, false)
+}

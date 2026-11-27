@@ -35,6 +35,7 @@ export default defineConfig({
           { name: 'Nhập việc nhanh', short_name: 'Nhập việc', url: '/my-work-assistant/?action=capture', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
           { name: 'Bắt đầu ngày', short_name: 'Sáng', url: '/my-work-assistant/?action=morning', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
           { name: 'Tổng kết ngày', short_name: 'Tối', url: '/my-work-assistant/?action=evening', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
+          { name: 'Bullet Journal', short_name: 'Nhật ký', url: '/my-work-assistant/?action=journal', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
           { name: 'Tập trung', short_name: 'Tập trung', url: '/my-work-assistant/?action=focus', icons: [{ src: 'pwa-192.png', sizes: '192x192' }] },
         ],
         share_target: { action: '/my-work-assistant/', method: 'GET', params: { title: 'title', text: 'text', url: 'url' } },

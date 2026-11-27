@@ -74,6 +74,9 @@ export function CommandPalette() {
           <Command.Item className={item} onSelect={() => run(() => useUI.getState().openRitual('evening'))}>
             <Sunset /> Tổng kết ngày (nghi thức tối)
           </Command.Item>
+          <Command.Item className={item} onSelect={() => run(() => nav('/journal/month'))}>
+            <Sunset /> Tổng kết tháng (Bullet Journal)
+          </Command.Item>
           <Command.Item className={item} onSelect={() => run(() => useUI.getState().setTemplates(true))}>
             <LayoutTemplate /> Tạo project từ mẫu
           </Command.Item>

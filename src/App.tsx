@@ -32,6 +32,8 @@ import Habits from '@/pages/Habits'
 import Focus from '@/pages/Focus'
 import Matrix from '@/pages/Matrix'
 import Settings from '@/pages/Settings'
+import JournalPage from '@/pages/Journal'
+import JournalMonth from '@/pages/JournalMonth'
 
 function ScrollTop() {
   const { pathname } = useLocation()
@@ -43,7 +45,7 @@ function ScrollTop() {
 }
 
 /** Pages where a remount would reset scroll/drag state; they update live anyway */
-const NO_REMOUNT_ON_EDIT = ['/calendar', '/focus']
+const NO_REMOUNT_ON_EDIT = ['/calendar', '/focus', '/journal', '/journal/month']
 
 /**
  * Fresh render of the current page: on every navigation (key = path), when the
@@ -127,6 +129,8 @@ function Main() {
             <Route path="/roles" element={<Roles />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/habits" element={<Habits />} />
+            <Route path="/journal" element={<JournalPage />} />
+            <Route path="/journal/month" element={<JournalMonth />} />
             <Route path="/focus" element={<Focus />} />
             <Route path="/matrix" element={<Matrix />} />
             <Route path="/settings" element={<Settings />} />

@@ -13,6 +13,7 @@ self.addEventListener('notificationclick', (event) => {
       let q = ''
       if (target && target.kind === 'ritual') q = '?action=' + target.ritual
       else if (target && target.kind === 'focus') q = '?action=focus'
+      else if (target && target.kind === 'month') q = '?action=month'
       return self.clients.openWindow(self.registration.scope + q)
     }),
   )

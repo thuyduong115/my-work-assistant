@@ -34,7 +34,7 @@ function once(key: string) {
   return true
 }
 
-export type NotifyTarget = { kind: 'ritual'; ritual: 'morning' | 'evening' } | { kind: 'task'; taskId: string } | { kind: 'focus' }
+export type NotifyTarget = { kind: 'ritual'; ritual: 'morning' | 'evening' } | { kind: 'task'; taskId: string } | { kind: 'focus' } | { kind: 'month'; month: string }
 
 /**
  * System notification when the app is in the background (via the service worker so it
@@ -73,6 +73,7 @@ export function openTarget(t: NotifyTarget) {
   if (t.kind === 'ritual') ui.openRitual(t.ritual)
   else if (t.kind === 'task') ui.openTask(t.taskId)
   else if (t.kind === 'focus') location.hash = '#/focus'
+  else if (t.kind === 'month') location.hash = `#/journal/month?m=${t.month}`
 }
 
 function remind(title: string, body: string, tag: string, target?: NotifyTarget, action?: { label: string; onClick: () => void }) {
@@ -144,6 +145,13 @@ async function check() {
       remind('☀️ Bắt đầu ngày mới (1 phút)', 'Dọn việc tồn, chọn 3 việc chính hôm nay.', 'ritual', { kind: 'ritual', ritual: 'morning' })
     if (nowMin >= e && !j?.eveningAt && once(`evening:${today}`))
       remind('🌙 Tổng kết ngày (1 phút)', 'Tick việc đã xong, dời việc còn lại, ghi lại hôm nay thế nào.', 'ritual', { kind: 'ritual', ritual: 'evening' })
+    // last day of the month, evening: invite the monthly review
+    const month = today.slice(0, 7)
+    if (nowMin >= e && dayKey(addDays(now, 1)).slice(0, 7) !== month) {
+      const m = await db.journal.get(`m-${month}`)
+      if (!m?.reviewedAt && once(`month:${month}`))
+        remind('📖 Tổng kết tháng', 'Tháng sắp hết — xem lại cả tháng trong Bullet Journal và đặt mục tiêu tháng sau.', 'month', { kind: 'month', month })
+    }
   }
 }
 
@@ -178,6 +186,8 @@ export function useLaunchParams() {
     if (action === 'capture') ui.openCapture()
     else if (action === 'morning' || action === 'evening') ui.openRitual(action)
     else if (action === 'focus') location.hash = '#/focus'
+    else if (action === 'journal') location.hash = '#/journal'
+    else if (action === 'month') location.hash = '#/journal/month'
     else if (shared) ui.openCapture(shared, 'email')
     history.replaceState(null, '', location.pathname + location.hash)
   }, [])

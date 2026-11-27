@@ -122,3 +122,19 @@ export const journalId = (date: string) => `j-${date}`
 
 /** Patch the day's journal entry (created on first write) */
 export const saveJournal = (date: string, patch: Partial<Journal>) => put('journal', { id: journalId(date), date, ...patch })
+
+export const GOALS_ID = 'meta-goals'
+export const monthId = (month: string) => `m-${month}`
+export const saveMonth = (month: string, patch: Partial<Journal>) => put('journal', { id: monthId(month), date: month, ...patch })
+export const saveGoals = (goals: Journal['goals']) => put('journal', { id: GOALS_ID, date: 'meta', goals })
+
+/** Patch a journal row from its latest stored version (safe for quick successive edits) */
+export async function updateJournal(date: string, fn: (j: Journal | undefined) => Partial<Journal>) {
+  const cur = await db.journal.get(journalId(date))
+  return saveJournal(date, fn(cur && !cur.deleted ? cur : undefined))
+}
+
+export async function updateGoals(fn: (goals: NonNullable<Journal['goals']>) => Journal['goals']) {
+  const cur = await db.journal.get(GOALS_ID)
+  return saveGoals(fn(cur?.goals ?? []))
+}

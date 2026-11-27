@@ -104,9 +104,53 @@ export interface HabitLog extends Base {
   count: number
 }
 
-/** One per day: morning plan + evening review (id = "j-YYYY-MM-DD") */
+/** A manual block on the bullet-journal timeline (sleep, class, meals…) */
+export interface JournalBlock {
+  id: string
+  kind: 'sleep' | 'class' | 'work' | 'meal' | 'move' | 'sport' | 'fun' | 'other'
+  label: string
+  start: string // HH:mm
+  end: string // HH:mm, after start (split blocks that cross midnight)
+}
+
+/** Non-task bullets: – note · ○ event · ! idea */
+export interface JournalBullet {
+  id: string
+  kind: 'note' | 'event' | 'idea'
+  text: string
+}
+
+/** Long-term goal you tick on the days you worked on it */
+export interface LongGoal {
+  id: string
+  name: string
+  archived?: boolean
+}
+
+/**
+ * Journal rows:
+ * - "j-YYYY-MM-DD": one per day (morning plan, evening review, bullet-journal page)
+ * - "m-YYYY-MM": monthly review (date = "YYYY-MM")
+ * - "meta-goals": the long-term goal list (date = "meta")
+ */
 export interface Journal extends Base {
   date: string
+  /** bullet-journal page: title/motto of the day */
+  title?: string
+  /** 1 … 10 */
+  score?: number
+  blocks?: JournalBlock[]
+  bullets?: JournalBullet[]
+  /** long-term goal ids worked on this day */
+  goalsDone?: string[]
+  /** meta row only */
+  goals?: LongGoal[]
+  /** monthly review */
+  good?: string
+  improve?: string
+  nextFocus?: string
+  review?: string
+  reviewedAt?: number
   /** the day's 3 most important task ids */
   top3?: string[]
   /** 1 (drained) … 5 (full of energy) */

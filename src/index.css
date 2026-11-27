@@ -20,6 +20,8 @@
   --ring: var(--primary);
   --sidebar: oklch(0.975 0.008 295);
   --radius: 0.8rem;
+  --paper: oklch(0.992 0.008 95);
+  --dot: oklch(0.82 0.012 90);
 }
 
 .dark {
@@ -37,6 +39,8 @@
   --success: oklch(0.74 0.16 155);
   --warning: oklch(0.8 0.15 75);
   --sidebar: oklch(0.17 0.013 285);
+  --paper: oklch(0.2 0.012 285);
+  --dot: oklch(0.34 0.012 285);
 }
 
 /* Accent colors */
@@ -98,3 +102,20 @@
 
 @keyframes pop-in { from { transform: scale(.96); opacity: 0 } to { transform: scale(1); opacity: 1 } }
 .animate-pop { animation: pop-in .16s ease-out; }
+
+/* Bullet journal: dotted paper + optional handwriting */
+.bujo-paper {
+  background-color: var(--paper);
+  background-image: radial-gradient(circle, var(--dot) 1px, transparent 1.4px);
+  background-size: 20px 20px;
+}
+.font-hand .bujo-paper { font-family: 'Patrick Hand', var(--font-sans); font-size: 1.04rem; }
+.font-hand .bujo-paper input, .font-hand .bujo-paper textarea, .font-hand .bujo-paper button { font-family: inherit; }
+.bujo-h { letter-spacing: -0.01em; }
+
+@media print {
+  aside, header, .no-print, [aria-label='Chat với trợ lý AI'], [data-sonner-toaster] { display: none !important; }
+  main { max-width: none !important; padding: 0 !important; }
+  body { background: white; }
+  .bujo-paper { box-shadow: none !important; border: 0 !important; }
+}
