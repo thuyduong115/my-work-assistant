@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { ProjectTemplate } from '@/lib/templates'
+import { DEFAULT_SUPABASE_KEY, DEFAULT_SUPABASE_URL } from '@/config'
 
 export type Theme = 'light' | 'dark' | 'system'
 export type Accent = 'violet' | 'pink' | 'teal' | 'orange' | 'blue' | 'green'
@@ -62,7 +63,7 @@ export const useSettings = create<Settings>()(
       autoSchedule: true,
       maxBlockMin: 90,
       ai: { provider: 'gemini', keys: {}, model: {} },
-      supabase: { url: import.meta.env.VITE_SUPABASE_URL ?? '', anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '' },
+      supabase: { url: DEFAULT_SUPABASE_URL, anonKey: DEFAULT_SUPABASE_KEY },
       pomodoro: { focus: 25, short: 5, long: 15, longEvery: 4, autoBreak: true, sound: true },
       dailyGoalMin: 120,
       reminders: { enabled: true, beforeMin: 10, deadlines: true, rituals: true, morning: '07:30', evening: '21:30' },
@@ -76,7 +77,8 @@ export const useSettings = create<Settings>()(
         const p = (persisted ?? {}) as Partial<Settings>
         const merged = { ...current, ...p }
         // build-time Supabase config fills blanks
-        if (!merged.supabase?.url) merged.supabase = current.supabase
+        // built-in project fills blanks, and its current key replaces an older one saved here
+        if (!merged.supabase?.url || merged.supabase.url.trim().replace(/\/$/, '') === DEFAULT_SUPABASE_URL) merged.supabase = current.supabase
         return merged
       },
     },

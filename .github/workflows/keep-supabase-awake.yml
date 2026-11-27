@@ -16,14 +16,14 @@ jobs:
     steps:
       - name: Ping Supabase
         env:
-          URL: ${{ vars.VITE_SUPABASE_URL }}
-          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          URL: ${{ vars.VITE_SUPABASE_URL || 'https://wsqfexzfjkgmnpdbault.supabase.co' }}
+          KEY: ${{ vars.VITE_SUPABASE_ANON_KEY || 'sb_publishable_dnNMksYdMYOw7wQ_-69XTQ_AgETjcIV' }}
         run: |
           if [ -z "$URL" ] || [ -z "$KEY" ]; then
             echo "::warning::Set the VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY repository variables to keep Supabase awake."
             exit 0
           fi
-          code=$(curl -sS -o /dev/null -w '%{http_code}' "${URL%/}/rest/v1/items?select=id&limit=1" -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          code=$(curl -sS -o /dev/null -w '%{http_code}' "${URL%/}/rest/v1/items?select=id&limit=1" -H "apikey: $KEY")
           echo "Supabase answered HTTP $code"
           if [ "$code" -ge 400 ]; then
             echo "::error::Supabase did not answer normally (HTTP $code). The project may be paused: open supabase.com/dashboard and restore it."
