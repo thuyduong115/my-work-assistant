@@ -177,3 +177,32 @@ export function GcalSettings() {
     </div>
   )
 }
+
+/** Header chip shown when the Google session expired (renewing needs a click: Google opens a popup) */
+export function GcalRenewChip() {
+  const { connected, status } = useGCal()
+  const [busy, setBusy] = useState(false)
+  if (!connected || status !== 'need-auth') return null
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true)
+        try {
+          await syncGcal(true)
+          const s = useGCal.getState()
+          if (s.status === 'error') toast.error(s.error ?? 'Không làm mới được Google Calendar')
+          else toast.success('Đã làm mới Google Calendar')
+        } finally {
+          setBusy(false)
+        }
+      }}
+      title="Phiên Google hết hạn (Google chỉ cấp quyền 1 giờ mỗi lần) — bấm để làm mới"
+      className="flex h-9 items-center gap-1.5 rounded-lg border border-amber-400/60 bg-amber-400/10 px-2.5 text-xs font-medium text-amber-700 transition hover:bg-amber-400/20 dark:text-amber-300"
+    >
+      {busy ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />}
+      <span className="hidden sm:inline">Làm mới Google</span>
+    </button>
+  )
+}

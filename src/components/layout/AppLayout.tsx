@@ -11,6 +11,7 @@ import { Button } from '../ui/button'
 import { Dropdown, DropdownItem } from '../ui/dropdown'
 import { Progress } from '../ui/misc'
 import { MiniButton, TimerChip } from '../Timer'
+import { GcalRenewChip } from '@/gcal/GcalUI'
 import { NAV } from './nav'
 
 function useStats() {
@@ -194,6 +195,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <kbd className="hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline">{isMac ? '⌘' : 'Ctrl'} K</kbd>
           </button>
           <div className="ml-auto flex items-center gap-1">
+            <GcalRenewChip />
             <TimerChip />
             <MiniButton />
             <ThemeMenu />

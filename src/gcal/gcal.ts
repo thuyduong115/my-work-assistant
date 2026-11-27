@@ -92,7 +92,7 @@ interface TokenClient {
 }
 declare global {
   interface Window {
-    google?: { accounts: { oauth2: { initTokenClient: (c: { client_id: string; scope: string; callback: (r: TokenResponse) => void; error_callback?: (e: { type: string; message?: string }) => void }) => TokenClient; revoke: (t: string, cb?: () => void) => void } } }
+    google?: { accounts: { oauth2: { initTokenClient: (c: { client_id: string; scope: string; hint?: string; callback: (r: TokenResponse) => void; error_callback?: (e: { type: string; message?: string }) => void }) => TokenClient; revoke: (t: string, cb?: () => void) => void } } }
   }
 }
 
@@ -116,7 +116,7 @@ function loadGis() {
 const TOKEN_KEY = 'mwa-gcal-token'
 function cachedToken(): string | null {
   try {
-    const t = JSON.parse(sessionStorage.getItem(TOKEN_KEY) ?? 'null') as { token: string; exp: number } | null
+    const t = JSON.parse(localStorage.getItem(TOKEN_KEY) ?? 'null') as { token: string; exp: number } | null
     return t && t.exp > Date.now() + 60_000 ? t.token : null
   } catch {
     return null
@@ -138,12 +138,30 @@ export async function getToken(interactive: boolean): Promise<string> {
     const client = window.google!.accounts.oauth2.initTokenClient({
       client_id: clientId.trim(),
       scope: SCOPES,
+      // pre-selects the connected account so renewing is one click
+      hint: useGCal.getState().email,
       callback: (r) => {
-        if (r.error || !r.access_token) return reject(new Error(r.error_description || r.error || 'Google từ chối đăng nhập'))
-        sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ token: r.access_token, exp: Date.now() + (r.expires_in ?? 3600) * 1000 }))
+        if (r.error || !r.access_token)
+          return reject(
+            new Error(
+              r.error === 'access_denied'
+                ? 'Google từ chối quyền truy cập. Nếu ứng dụng OAuth đang ở chế độ "Testing": Google Cloud → OAuth consent screen → Test users → thêm email của bạn.'
+                : r.error_description || r.error || 'Google từ chối đăng nhập',
+            ),
+          )
+        localStorage.setItem(TOKEN_KEY, JSON.stringify({ token: r.access_token, exp: Date.now() + (r.expires_in ?? 3600) * 1000 }))
         resolve(r.access_token)
       },
-      error_callback: (e) => reject(new Error(e.type === 'popup_closed' ? 'Bạn đã đóng cửa sổ đăng nhập Google.' : e.message || e.type)),
+      error_callback: (e) =>
+        reject(
+          new Error(
+            e.type === 'popup_closed'
+              ? 'Bạn đã đóng cửa sổ đăng nhập Google.'
+              : e.type === 'popup_failed_to_open'
+                ? 'Trình duyệt chặn cửa sổ đăng nhập Google — cho phép popup cho trang này (biểu tượng ở cuối thanh địa chỉ) rồi thử lại.'
+                : e.message || e.type,
+          ),
+        ),
     })
     client.requestAccessToken({ prompt: useGCal.getState().connected ? '' : 'consent' })
   })
@@ -153,7 +171,7 @@ async function api<T>(path: string, init: RequestInit = {}, interactive = false)
   const token = await getToken(interactive)
   const res = await fetch(API + path, { ...init, headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', ...(init.headers ?? {}) } })
   if (res.status === 401) {
-    sessionStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(TOKEN_KEY)
     useGCal.getState().set({ status: 'need-auth' })
     throw new Error('NEED_AUTH')
   }
@@ -187,7 +205,7 @@ export async function connect() {
 export function disconnect() {
   const t = cachedToken()
   if (t) window.google?.accounts.oauth2.revoke(t)
-  sessionStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(TOKEN_KEY)
   useGCal.getState().set({ connected: false, events: [], calendars: [], email: undefined, status: 'idle' })
 }
 

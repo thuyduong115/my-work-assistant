@@ -264,3 +264,21 @@ export async function fullResync() {
   if (s) localStorage.removeItem(cursorKey(s.user.id))
   await syncNow()
 }
+
+/** Sign in with Google (needs the Google provider enabled in Supabase → Authentication → Sign In / Providers) */
+export async function signInWithGoogle() {
+  const sb = getClient()
+  if (!sb) throw new Error('Chưa cấu hình Supabase')
+  const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }).catch((e) => ({ error: e as Error }))
+  if (error && isNetworkError(error) && navigator.onLine) throw new Error(UNREACHABLE)
+  if (error) throw new Error(/provider is not enabled|unsupported provider/i.test(error.message) ? 'Chưa bật đăng nhập Google trong Supabase — xem hướng dẫn ngay bên dưới nút.' : error.message)
+}
+
+/** Passwordless: email a one-time sign-in link */
+export async function sendMagicLink(email: string) {
+  const sb = getClient()
+  if (!sb) throw new Error('Chưa cấu hình Supabase')
+  const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } }).catch((e) => ({ error: e as Error }))
+  if (error && isNetworkError(error) && navigator.onLine) throw new Error(UNREACHABLE)
+  if (error) throw new Error(/rate limit/i.test(error.message) ? 'Gửi email quá nhiều lần — đợi khoảng 1 giờ hoặc dùng mật khẩu / Google.' : error.message)
+}

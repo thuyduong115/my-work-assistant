@@ -180,6 +180,8 @@ export function useLaunchParams() {
   useEffect(() => {
     const q = new URLSearchParams(location.search)
     if (![...q.keys()].length) return
+    // sign-in redirects (?code=…) are handled by Supabase; don't strip them
+    if (q.has('code') || q.has('error_description')) return
     const ui = useUI.getState()
     const action = q.get('action')
     const shared = [q.get('title'), q.get('text'), q.get('url')].filter(Boolean).join('\n')
