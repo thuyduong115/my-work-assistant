@@ -442,7 +442,7 @@ function RemindersSection() {
       id="reminders"
       icon={<Bell />}
       title="Nhắc nhở & nghi thức ngày"
-      desc="Nhắc khi app đang mở (kể cả tab chạy nền / app đã cài). Muốn nhắc cả khi đã tắt app: bật Google Calendar bên dưới — mỗi block làm task sẽ có nhắc 5 phút trước trên điện thoại."
+      desc="Nhắc khi app đang mở (kể cả tab chạy nền / app đã cài trên điện thoại hoặc máy tính)."
     >
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg bg-muted/60 p-3 text-sm">
         <span>
@@ -606,7 +606,7 @@ export default function Settings() {
 
       <RemindersSection />
 
-      <Section id="gcal" icon={<CalendarDays />} title="Google Calendar" desc="Hiện lịch Google trong app, tránh xếp task trùng giờ bận, và đẩy lịch làm task lên Google Calendar để nhận nhắc trên điện thoại.">
+      <Section id="gcal" icon={<CalendarDays />} title="Google Calendar" desc="Hiện lịch Google trong app, tránh xếp task trùng giờ bận, và ghi lại những việc đã xong lên Google Calendar như một cuốn nhật ký.">
         <GcalSettings />
       </Section>
 

@@ -260,7 +260,6 @@ async function pullEvents() {
 
 // ---------- push ----------
 
-const blockKey = (taskId: string, b: PlanBlock) => `${taskId}|${b.date}|${b.start}`
 
 function toRFC(date: string, min: number) {
   const d = new Date(`${date}T00:00`)
@@ -268,26 +267,55 @@ function toRFC(date: string, min: number) {
   return d.toISOString()
 }
 
+const LOG_DAYS = 30
+
+/**
+ * Google Calendar as a log: only finished tasks, titled "<Project>: <Task>", placed at the
+ * time they were actually worked on (timer sessions → the day's planned block → the
+ * estimate ending when it was ticked). Older planned "✅" blocks are removed.
+ */
 async function pushPlan() {
   const s = useGCal.getState()
   if (!s.exportEnabled) return
   const cal = encodeURIComponent(s.exportCalendarId || 'primary')
-  const today = dayKey()
-  const until = dayKey(addDays(new Date(), PUSH_DAYS))
-  const tasks = (await db.tasks.toArray()).filter((t) => !t.deleted && t.status !== 'done')
-  const want = new Map<string, { title: string; start: string; end: string; taskId: string }>()
-  for (const t of tasks)
-    for (const b of t.plan ?? []) {
-      if (b.date < today || b.date > until) continue
-      const startMin = hhmmToMin(b.start)
-      want.set(blockKey(t.id, b), { title: `✅ ${t.title}`, start: toRFC(b.date, startMin), end: toRFC(b.date, startMin + b.min), taskId: t.id })
-    }
+  const since = Date.now() - LOG_DAYS * 86_400_000
+  const all = (await db.tasks.toArray()).filter((t) => !t.deleted)
+  const projects = new Map((await db.projects.toArray()).filter((p) => !p.deleted).map((p) => [p.id, p.name]))
+  const entries = (await db.timeEntries.toArray()).filter((e) => !e.deleted && e.taskId && e.end > since)
+  const want = new Map<string, { title: string; start: string; end: string; taskId: string; note: string }>()
+  const iso = (ms: number) => new Date(ms).toISOString()
 
-  // existing events we created
+  for (const t of all) {
+    if (t.parentId || t.status !== 'done' || !t.doneAt || t.doneAt < since) continue
+    const title = t.projectId && projects.get(t.projectId) ? `${projects.get(t.projectId)}: ${t.title}` : t.title
+    const ids = new Set([t.id, ...all.filter((c) => c.parentId === t.id).map((c) => c.id)])
+    const sessions = entries.filter((e) => ids.has(e.taskId!)).sort((a, b) => a.start - b.start)
+    const spans: [number, number][] = []
+    for (const e of sessions) {
+      const last = spans[spans.length - 1]
+      if (last && e.start - last[1] <= 10 * 60_000) last[1] = Math.max(last[1], e.end)
+      else spans.push([e.start, e.end])
+    }
+    const actual = Math.round(sessions.reduce((a, e) => a + (e.end - e.start), 0) / 60_000)
+    const note = `Đã xong ${new Date(t.doneAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })} · ước lượng ${t.estimateMin}p${actual ? ` · thực tế ${actual}p` : ''}`
+    if (spans.length) {
+      for (const [a, b] of spans) want.set(`log:${t.id}:${a}`, { title, start: iso(a), end: iso(b), taskId: t.id, note })
+      continue
+    }
+    const doneDay = dayKey(new Date(t.doneAt))
+    const blocks = (t.plan ?? []).filter((b) => b.date === doneDay)
+    if (blocks.length) {
+      for (const b of blocks) want.set(`log:${t.id}:${b.date}:${b.start}`, { title, start: toRFC(b.date, hhmmToMin(b.start)), end: toRFC(b.date, hhmmToMin(b.start) + b.min), taskId: t.id, note })
+      continue
+    }
+    want.set(`log:${t.id}:done`, { title, start: iso(t.doneAt - Math.max(15, t.estimateMin) * 60_000), end: iso(t.doneAt), taskId: t.id, note })
+  }
+
+  // events we created earlier (past log + any old planned blocks ahead)
   const have = new Map<string, ApiEvent>()
   let pageToken: string | undefined
   do {
-    const q = new URLSearchParams({ privateExtendedProperty: 'mwa=1', timeMin: new Date(`${today}T00:00`).toISOString(), timeMax: addDays(new Date(), PUSH_DAYS + 1).toISOString(), singleEvents: 'true', maxResults: '250', ...(pageToken ? { pageToken } : {}) })
+    const q = new URLSearchParams({ privateExtendedProperty: 'mwa=1', timeMin: iso(since - 86_400_000), timeMax: addDays(new Date(), PUSH_DAYS + 1).toISOString(), singleEvents: 'true', maxResults: '250', ...(pageToken ? { pageToken } : {}) })
     const r = await api<{ items: ApiEvent[]; nextPageToken?: string }>(`/calendars/${cal}/events?${q}`)
     for (const e of r.items) if (e.status !== 'cancelled') have.set(e.extendedProperties?.private?.key ?? e.id, e)
     pageToken = r.nextPageToken
@@ -295,13 +323,11 @@ async function pushPlan() {
 
   for (const [key, e] of have) {
     const w = want.get(key)
-    // events from older versions carry a fixed purple color: recreate them so they
-    // follow the calendar's own color (a PATCH can't reliably clear colorId)
     if (!w || e.colorId) {
       await api(`/calendars/${cal}/events/${e.id}`, { method: 'DELETE' })
       have.delete(key)
-    } else if (e.summary !== w.title || new Date(e.end.dateTime ?? 0).toISOString() !== w.end)
-      await api(`/calendars/${cal}/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ summary: w.title, end: { dateTime: w.end } }) })
+    } else if (e.summary !== w.title || new Date(e.start.dateTime ?? 0).toISOString() !== new Date(w.start).toISOString() || new Date(e.end.dateTime ?? 0).toISOString() !== new Date(w.end).toISOString())
+      await api(`/calendars/${cal}/events/${e.id}`, { method: 'PATCH', body: JSON.stringify({ summary: w.title, start: { dateTime: w.start }, end: { dateTime: w.end } }) })
   }
   for (const [key, w] of want) {
     if (have.has(key)) continue
@@ -309,10 +335,10 @@ async function pushPlan() {
       method: 'POST',
       body: JSON.stringify({
         summary: w.title,
-        description: 'Tạo bởi My Work Assistant — https://thuyduong115.github.io/my-work-assistant/',
+        description: `${w.note}\nGhi lại bởi My Work Assistant — https://thuyduong115.github.io/my-work-assistant/`,
         start: { dateTime: w.start },
         end: { dateTime: w.end },
-        reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 5 }] },
+        reminders: { useDefault: false, overrides: [] },
         extendedProperties: { private: { mwa: '1', key, taskId: w.taskId } },
       }),
     })

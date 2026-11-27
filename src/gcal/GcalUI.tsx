@@ -153,7 +153,7 @@ export function GcalSettings() {
           <div className="grid gap-2 sm:grid-cols-[auto_1fr] sm:items-center">
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" className="size-4 accent-[var(--primary)]" checked={g.exportEnabled} onChange={(e) => g.set({ exportEnabled: e.target.checked })} />
-              Đẩy lịch làm task lên Google (30 ngày tới, nhắc trước 5 phút) vào lịch:
+              Ghi lại việc đã xong lên Google Calendar ("Project: Task", đúng giờ đã làm, 30 ngày gần nhất) vào lịch:
             </label>
             <Select value={g.exportCalendarId} onChange={(e) => g.set({ exportCalendarId: e.target.value })} disabled={!g.exportEnabled}>
               <option value="primary">Lịch chính</option>
