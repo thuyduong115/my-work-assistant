@@ -40,6 +40,10 @@ export function getClient() {
 const cursorKey = (uid: string) => `mwa-sync-cursor-${uid}`
 const STRIP = new Set(['id', 'updatedAt', 'deleted', 'dirty'])
 
+const UNREACHABLE =
+  'Không kết nối được Supabase. Thường là project đang bị tạm dừng (gói Free tự dừng sau 7 ngày không dùng) hoặc đã bị xoá: vào supabase.com/dashboard → mở project → "Restore project". Nếu không còn project, tạo project mới và dán URL / anon key mới vào đây — dữ liệu trên máy vẫn còn.'
+const isNetworkError = (e: unknown) => /failed to fetch|networkerror|load failed|fetch failed|ERR_NAME_NOT_RESOLVED/i.test((e as { message?: string })?.message ?? String(e))
+
 function table(name: TableName) {
   return db[name] as unknown as EntityTable<Base & Record<string, unknown>, 'id'>
 }
@@ -129,8 +133,8 @@ async function doSync() {
       status: 'error',
       error: /relation .*items.* does not exist|Could not find the table/i.test(msg)
         ? 'Chưa tạo bảng "items" — chạy SQL trong Cài đặt → Đồng bộ.'
-        : /failed to fetch|networkerror|load failed|ERR_NAME_NOT_RESOLVED|fetch failed/i.test(msg) && navigator.onLine
-          ? 'Không kết nối được Supabase. Project có thể đang bị tạm dừng (gói Free tự tạm dừng sau 7 ngày không dùng): vào supabase.com/dashboard → mở project → "Restore project". Dữ liệu trên máy này vẫn còn và sẽ tự đồng bộ lại.'
+        : isNetworkError(msg) && navigator.onLine
+          ? UNREACHABLE
           : /invalid api key|no api key|jwt/i.test(msg)
             ? 'Anon key không hợp lệ — kiểm tra lại Project URL / anon key trong Cài đặt → Đồng bộ.'
             : msg,
@@ -188,7 +192,8 @@ export async function initSync() {
 export async function signIn(email: string, password: string) {
   const sb = getClient()
   if (!sb) throw new Error('Chưa cấu hình Supabase')
-  const { error } = await sb.auth.signInWithPassword({ email, password })
+  const { error } = await sb.auth.signInWithPassword({ email, password }).catch((e) => ({ error: e as Error }))
+  if (error && isNetworkError(error) && navigator.onLine) throw new Error(UNREACHABLE)
   if (error) {
     if (/email not confirmed/i.test(error.message)) throw new Error('EMAIL_NOT_CONFIRMED')
     if (/invalid login credentials/i.test(error.message)) throw new Error('Sai email hoặc mật khẩu (hoặc chưa đăng ký).')
@@ -206,11 +211,14 @@ export async function resendConfirmation(email: string) {
 export async function signUp(email: string, password: string) {
   const sb = getClient()
   if (!sb) throw new Error('Chưa cấu hình Supabase')
-  const { data, error } = await sb.auth.signUp({
+  const { data, error } = await sb.auth
+    .signUp({
     email,
     password,
-    options: { emailRedirectTo: location.origin + location.pathname },
-  })
+      options: { emailRedirectTo: location.origin + location.pathname },
+    })
+    .catch((e) => ({ data: { session: null }, error: e as Error }))
+  if (error && isNetworkError(error) && navigator.onLine) throw new Error(UNREACHABLE)
   if (error) throw error
   return !!data.session
 }
