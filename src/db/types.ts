@@ -120,6 +120,16 @@ export interface JournalBullet {
   text: string
 }
 
+/** Decoration of a month's journal pages (preset + your overrides) */
+export interface BujoThemeSetting {
+  preset: string
+  accent?: string
+  accent2?: string
+  stickers?: string
+  paper?: 'plain' | 'dots' | 'grid' | 'lines'
+  density?: 0 | 1 | 2
+}
+
 /** Long-term goal you tick on the days you worked on it */
 export interface LongGoal {
   id: string
@@ -151,6 +161,8 @@ export interface Journal extends Base {
   nextFocus?: string
   review?: string
   reviewedAt?: number
+  /** monthly review row: the month's bullet-journal look */
+  theme?: BujoThemeSetting
   /** the day's 3 most important task ids */
   top3?: string[]
   /** 1 (drained) … 5 (full of energy) */

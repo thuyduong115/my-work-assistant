@@ -18,6 +18,7 @@ import { cn, dayKey, fromDayKey, minToHHMM, uid } from '@/lib/utils'
 import { useUI } from '@/stores/ui'
 import { tapHabit } from './Habits'
 import { MOOD } from '@/components/Ritual'
+import { ThemeDecor, ThemePicker, themeProps, useMonthTheme } from '@/components/BujoTheme'
 import { AppIcon } from '@/components/AppIcon'
 import { Dialog } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -270,6 +271,8 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const pageNo = journals.filter((j) => j.date <= date).length + (journal ? 0 : 1)
   const top3 = new Set(journal?.top3 ?? [])
   const save = (patch: Partial<Journal>) => saveJournal(date, patch)
+  const { theme } = useMonthTheme(date.slice(0, 7))
+  const tp = themeProps(theme)
 
   const groups = useMemo(() => {
     const m = new Map<string, typeof items>()
@@ -307,13 +310,15 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
   const d = fromDayKey(date)
 
   return (
-    <article className={cn('bujo-paper relative min-w-0 rounded-2xl border p-4 shadow-sm sm:p-6', narrow ? '' : 'min-h-[70vh]')}>
+    <article style={tp.style} className={cn(tp.className, 'relative min-w-0 rounded-2xl border p-4 shadow-sm sm:p-6', theme.corner.length && 'pb-16 sm:pb-16', narrow ? '' : 'min-h-[70vh]')}>
+      <ThemeDecor theme={theme} seed={date} />
+      <div className="relative z-10">
       {/* header */}
       <div className="mb-3 flex items-start justify-between gap-3">
-        <LineInput value={journal?.title} onSave={(title) => save({ title })} placeholder={mottoFor(date)} className="bujo-h text-2xl font-bold sm:text-[1.7rem]" />
+        <LineInput value={journal?.title} onSave={(title) => save({ title })} placeholder={mottoFor(date)} className="bujo-title text-2xl font-bold sm:text-[1.7rem]" />
         <div className="shrink-0 text-right">
-          <div className="text-[11px] font-semibold text-orange-500 tabular">{format(d, 'dd.MM.yyyy')}</div>
-          <div className={cn('bujo-h text-lg leading-tight font-bold capitalize', date === today ? 'text-orange-500' : 'text-orange-500/80')}>{format(d, 'EEEE', { locale: vi })}</div>
+          <div className="bujo-accent text-[11px] font-semibold tabular">{format(d, 'dd.MM.yyyy')}</div>
+          <div className={cn('bujo-accent text-lg leading-tight font-bold capitalize', date !== today && 'opacity-80')}>{format(d, 'EEEE', { locale: vi })}</div>
           <div className="text-xs text-muted-foreground tabular">#{pageNo}</div>
         </div>
       </div>
@@ -329,7 +334,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                 type="button"
                 disabled={isFuture}
                 onClick={() => save({ score: journal?.score === i + 1 ? undefined : i + 1 })}
-                className={cn('grid size-6 place-items-center rounded-full border text-[11px] tabular transition', (journal?.score ?? 0) > i ? 'border-transparent bg-primary text-primary-foreground' : 'hover:border-primary disabled:opacity-40')}
+                className={cn('grid size-6 place-items-center rounded-full border text-[11px] tabular transition', (journal?.score ?? 0) > i ? 'bujo-fill' : 'hover:border-[var(--bj-accent)] disabled:opacity-40')}
               >
                 {i + 1}
               </button>
@@ -510,7 +515,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
                   return (
                     <li key={g.id}>
                       <button type="button" disabled={isFuture} onClick={() => toggleGoal(g.id)} className="flex items-center gap-2 text-left text-[0.95rem]">
-                        <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border-[1.5px] text-[10px]', on ? 'border-primary bg-primary text-primary-foreground' : 'border-foreground/50')}>{on ? '✓' : ''}</span>
+                        <span className={cn('grid size-4 shrink-0 place-items-center rounded-full border-[1.5px] text-[10px]', on ? 'bujo-fill' : 'border-foreground/50')}>{on ? '✓' : ''}</span>
                         {g.name}
                       </button>
                     </li>
@@ -616,6 +621,7 @@ export function BujoPage({ date, narrow }: { date: string; narrow?: boolean }) {
         </div>
       </div>
 
+      </div>
       {blockEdit && <BlockDialog date={date} block={blockEdit.block} startMin={blockEdit.start} onClose={() => setBlockEdit(null)} />}
     </article>
   )
@@ -670,6 +676,7 @@ export default function JournalPage() {
               {spread ? <Columns2 /> : <Square />} {spread ? '2 trang' : '1 trang'}
             </Button>
           )}
+          <ThemePicker month={date.slice(0, 7)} />
           <Button size="sm" variant={hand ? 'soft' : 'ghost'} onClick={() => setHand(!hand)} title="Chữ viết tay">
             <Type /> Viết tay
           </Button>

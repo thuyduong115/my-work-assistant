@@ -13,6 +13,7 @@ import { habitActiveOn } from '@/lib/stats'
 import { cn, dayKey, fromDayKey } from '@/lib/utils'
 import { MOOD } from '@/components/Ritual'
 import { AppIcon } from '@/components/AppIcon'
+import { ThemeDecor, ThemePicker, themeProps, useMonthTheme } from '@/components/BujoTheme'
 import { Button } from '@/components/ui/button'
 
 const WD = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
@@ -76,6 +77,8 @@ export default function JournalMonth() {
   const shift = (n: number) => setParams({ m: format(addMonths(first, n), 'yyyy-MM') })
   const maxFocus = Math.max(60, ...m.days.map((x) => x.focus))
   const save = (patch: Parameters<typeof saveMonth>[1]) => saveMonth(month, patch)
+  const { theme } = useMonthTheme(month)
+  const tp = themeProps(theme)
 
   const runAI = async () => {
     if (!aiConfig().ready) return toast.error('Cần API key AI', { description: 'Cài đặt → AI' })
@@ -119,17 +122,22 @@ ${lines.join('\n')}`
           <Button size="sm" variant="ghost" onClick={() => nav('/journal')}>
             ← Trang ngày
           </Button>
+          <ThemePicker month={month} />
           <Button size="sm" variant="outline" onClick={() => window.print()}>
             <Printer /> In / PDF
           </Button>
         </div>
       </div>
 
-      <article className="bujo-paper grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 rounded-2xl border p-4 shadow-sm sm:p-6">
+      <article style={tp.style} className={cn(tp.className, 'relative min-w-0 rounded-2xl border p-4 shadow-sm sm:p-6', theme.corner.length && 'pb-20')}>
+        <ThemeDecor theme={theme} seed={month} big />
+        <div className="relative z-10 grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold text-orange-500">monthly review</div>
-            <h2 className="bujo-h text-3xl font-bold capitalize sm:text-4xl">{format(first, 'MMMM, yyyy', { locale: vi })}</h2>
+            <div className="bujo-accent text-sm font-semibold">
+              monthly review · {theme.emoji} {theme.name}
+            </div>
+            <h2 className="bujo-title text-3xl font-bold capitalize sm:text-4xl">{format(first, 'MMMM, yyyy', { locale: vi })}</h2>
           </div>
           <div className="grid grid-cols-3 gap-x-5 gap-y-1 text-center sm:grid-cols-6">
             {[
@@ -167,7 +175,7 @@ ${lines.join('\n')}`
                   type="button"
                   onClick={() => nav(`/journal?d=${d.date}`)}
                   title={`${d.date}${d.score ? ` · ${d.score}/10` : ''} · ${d.done} việc · ${fmtHM(d.focus)} tập trung`}
-                  className={cn('relative flex aspect-square flex-col items-center justify-center rounded-lg border text-xs transition hover:ring-2 hover:ring-primary/50', d.date === today && 'ring-2 ring-orange-400', d.date > today && 'opacity-40')}
+                  className={cn('relative flex aspect-square flex-col items-center justify-center rounded-lg border text-xs transition hover:ring-2 hover:ring-primary/50', d.date === today && 'ring-2 ring-[var(--bj-accent)]', d.date > today && 'opacity-40')}
                   style={d.score ? { background: scoreColor(d.score), color: 'white', borderColor: 'transparent' } : undefined}
                 >
                   <span className="font-semibold tabular">{Number(d.date.slice(8))}</span>
@@ -196,7 +204,7 @@ ${lines.join('\n')}`
                     <tr>
                       <th />
                       {m.days.map((d) => (
-                        <th key={d.date} className={cn('w-4 font-normal text-muted-foreground tabular', d.date === today && 'text-orange-500')}>
+                        <th key={d.date} className={cn('w-4 font-normal text-muted-foreground tabular', d.date === today && 'bujo-accent')}>
                           {Number(d.date.slice(8))}
                         </th>
                       ))}
@@ -254,7 +262,7 @@ ${lines.join('\n')}`
                       </div>
                       <div className="mt-0.5 flex gap-[2px]">
                         {m.days.map((d) => (
-                          <span key={d.date} className={cn('h-2 flex-1 rounded-[1px]', on.includes(d) ? 'bg-primary' : 'bg-muted')} />
+                          <span key={d.date} className={cn('h-2 flex-1 rounded-[1px]', on.includes(d) ? 'bujo-fill' : 'bg-muted')} />
                         ))}
                       </div>
                     </li>
@@ -289,7 +297,7 @@ ${lines.join('\n')}`
             <H>Nhịp tập trung</H>
             <div className="flex h-24 items-end gap-[2px]">
               {m.days.map((d) => (
-                <div key={d.date} title={`${d.date}: ${fmtHM(d.focus)}`} className="flex-1 rounded-t-[2px] bg-primary/80" style={{ height: `${(d.focus / maxFocus) * 100}%`, minHeight: d.focus ? 2 : 0 }} />
+                <div key={d.date} title={`${d.date}: ${fmtHM(d.focus)}`} className="flex-1 rounded-t-[2px] opacity-80 bujo-fill" style={{ height: `${(d.focus / maxFocus) * 100}%`, minHeight: d.focus ? 2 : 0 }} />
               ))}
             </div>
             <div className="mt-1 flex justify-between text-[10px] text-muted-foreground tabular">
@@ -341,11 +349,12 @@ ${lines.join('\n')}`
             </Button>
           </div>
           {row?.review ? (
-            <div className="rounded-xl bg-primary-soft/50 p-4 text-[0.95rem] leading-relaxed whitespace-pre-line" dangerouslySetInnerHTML={{ __html: mdLite(row.review) }} />
+            <div className="rounded-xl bg-[color-mix(in_oklch,var(--bj-tint)_70%,transparent)] p-4 text-[0.95rem] leading-relaxed whitespace-pre-line" dangerouslySetInnerHTML={{ __html: mdLite(row.review) }} />
           ) : (
             <p className="text-sm text-muted-foreground">AI đọc nhật ký cả tháng (điểm ngày, giấc ngủ, thói quen, điều làm tốt) và gợi ý 3 mục tiêu cho tháng sau.</p>
           )}
         </section>
+        </div>
       </article>
     </div>
   )
