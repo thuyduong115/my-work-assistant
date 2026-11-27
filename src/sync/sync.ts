@@ -129,7 +129,11 @@ async function doSync() {
       status: 'error',
       error: /relation .*items.* does not exist|Could not find the table/i.test(msg)
         ? 'Chưa tạo bảng "items" — chạy SQL trong Cài đặt → Đồng bộ.'
-        : msg,
+        : /failed to fetch|networkerror|load failed|ERR_NAME_NOT_RESOLVED|fetch failed/i.test(msg) && navigator.onLine
+          ? 'Không kết nối được Supabase. Project có thể đang bị tạm dừng (gói Free tự tạm dừng sau 7 ngày không dùng): vào supabase.com/dashboard → mở project → "Restore project". Dữ liệu trên máy này vẫn còn và sẽ tự đồng bộ lại.'
+          : /invalid api key|no api key|jwt/i.test(msg)
+            ? 'Anon key không hợp lệ — kiểm tra lại Project URL / anon key trong Cài đặt → Đồng bộ.'
+            : msg,
     })
   }
 }
