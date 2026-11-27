@@ -116,26 +116,37 @@ async function call(system: string, user: string, json = true): Promise<string> 
     }
   } else {
     const p = PROVIDERS[provider as 'groq' | 'openrouter']
-    res = await fetch(`${p.base}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${key}`,
-        ...(provider === 'openrouter' ? { 'X-Title': 'My Work Assistant' } : {}),
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.4,
-        messages: [
-          { role: 'system', content: system },
-          { role: 'user', content: user },
-        ],
-        ...(json && provider === 'groq' ? { response_format: { type: 'json_object' } } : {}),
-      }),
-    })
+    const send = (maxTokens: number) =>
+      fetch(`${p.base}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${key}`,
+          ...(provider === 'openrouter' ? { 'X-Title': 'My Work Assistant' } : {}),
+        },
+        body: JSON.stringify({
+          model,
+          temperature: 0.4,
+          max_tokens: maxTokens,
+          messages: [
+            { role: 'system', content: system },
+            { role: 'user', content: user },
+          ],
+          ...(json && provider === 'groq' ? { response_format: { type: 'json_object' } } : {}),
+        }),
+      })
+    res = await send(1500)
+    // Free tiers cap output tokens per request/minute ("Limit 1000, Requested 1788"): retry within the cap
+    if (res.status === 429 || res.status === 413 || res.status === 400) {
+      const msg = await res.clone().text().catch(() => '')
+      const m = /Limit\s+(\d+),\s*Requested\s+(\d+)/i.exec(msg)
+      if (m && /token/i.test(msg) && Number(m[1]) >= 300) res = await send(Math.floor(Number(m[1]) * 0.9))
+    }
   }
   if (!res.ok) {
     const msg = await errorMessage(res)
+    if (res.status === 429 && /tokens per minute|TPM|OTPM/i.test(msg) && provider === 'groq')
+      throw new AIError(`Model "${usedModel}" có hạn mức token/phút rất thấp ở gói miễn phí. Vào Cài đặt → AI, chọn model "llama-3.3-70b-versatile" (hạn mức cao hơn) hoặc chuyển sang Gemini. Lỗi gốc: ${msg}`)
     if (res.status === 429) throw new AIError('Hết lượt miễn phí tạm thời (429). Đợi 1 phút rồi thử lại. ' + msg)
     if (/has not been used in project|is disabled|SERVICE_DISABLED/i.test(msg))
       throw new AIError(
