@@ -1,3 +1,4 @@
+import { DEFAULT_GOOGLE_CLIENT_ID } from '@/config'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { addDays } from 'date-fns'
@@ -56,7 +57,7 @@ interface GState {
 export const useGCal = create<GState>()(
   persist(
     (set) => ({
-      clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
+      clientId: DEFAULT_GOOGLE_CLIENT_ID,
       connected: false,
       calendars: [],
       selected: [],
@@ -71,7 +72,8 @@ export const useGCal = create<GState>()(
       partialize: (s) => ({ ...s, status: 'idle' as const, error: undefined }),
       merge: (persisted, current) => {
         const m = { ...current, ...(persisted as object) }
-        if (!m.clientId) m.clientId = current.clientId
+        // the built-in client replaces an older one saved here (the previous client was deleted)
+        if (m.clientId !== current.clientId) m.clientId = current.clientId
         return m
       },
     },
